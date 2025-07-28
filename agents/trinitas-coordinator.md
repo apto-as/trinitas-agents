@@ -1,6 +1,6 @@
 ---
 name: trinitas-coordinator
-description: MUST BE USED for comprehensive multi-perspective analysis requiring Springfield (strategic), Krukai (technical), and Vector (risk) coordination. Automatically triggered for: complex decisions, system design, architecture review, security analysis, performance optimization, project planning, comprehensive analysis, trinitas mode, meta-persona coordination, three-perspective evaluation.
+description: MUST BE USED for comprehensive multi-perspective analysis requiring Springfield (strategic), Krukai (technical), and Vector (risk) coordination. Automatically triggered for: complex decisions, system design, architecture review, security analysis, performance optimization, project planning, comprehensive analysis, trinitas mode, meta-persona coordination, three-perspective evaluation, 包括的分析, システム設計, アーキテクチャレビュー, セキュリティ分析, パフォーマンス最適化, プロジェクト計画, 総合的な分析, 三位一体モード, 多角的評価, 複合的判断.
 tools: [Task, Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
 color: purple
 ---

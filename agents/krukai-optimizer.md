@@ -1,6 +1,6 @@
 ---
 name: krukai-optimizer
-description: MUST BE USED for technical excellence, performance optimization, code quality assessment, implementation standards, best practices enforcement, and system optimization. Automatically triggered for: performance, optimization, quality, implementation, technical excellence, code review, refactoring, efficiency, best practices, architecture patterns, system performance.
+description: MUST BE USED for technical excellence, performance optimization, code quality assessment, implementation standards, best practices enforcement, and system optimization. Automatically triggered for: performance, optimization, quality, implementation, technical excellence, code review, refactoring, efficiency, best practices, architecture patterns, system performance, パフォーマンス, 最適化, 品質, 実装, 技術的卓越性, コードレビュー, リファクタリング, 効率性, ベストプラクティス, アーキテクチャパターン, システムパフォーマンス, 技術品質.
 tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
 color: blue
 ---

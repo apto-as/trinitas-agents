@@ -1,6 +1,6 @@
 ---
 name: trinitas-workflow
-description: MUST BE USED for development workflow management, automation pipeline coordination, project lifecycle management, and team collaboration workflows. Automatically triggered for: workflow, pipeline, automation, development process, project management, lifecycle, collaboration, CI/CD, deployment workflow, process optimization.
+description: MUST BE USED for development workflow management, automation pipeline coordination, project lifecycle management, and team collaboration workflows. Automatically triggered for: workflow, pipeline, automation, development process, project management, lifecycle, collaboration, CI/CD, deployment workflow, process optimization, ワークフロー, パイプライン, 自動化, 開発プロセス, プロジェクト管理, ライフサイクル, コラボレーション, デプロイメントワークフロー, プロセス最適化.
 tools: [Task, Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
 color: orange
 ---

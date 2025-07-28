@@ -1,6 +1,6 @@
 ---
 name: vector-auditor
-description: MUST BE USED for security analysis, risk assessment, vulnerability scanning, compliance verification, quality assurance, and threat modeling. Automatically triggered for: security, audit, risk, vulnerability, compliance, threat, safety, quality assurance, edge cases, worst-case scenarios, defensive measures, security review.
+description: MUST BE USED for security analysis, risk assessment, vulnerability scanning, compliance verification, quality assurance, and threat modeling. Automatically triggered for: security, audit, risk, vulnerability, compliance, threat, safety, quality assurance, edge cases, worst-case scenarios, defensive measures, security review, セキュリティ, 監査, リスク, 脆弱性, コンプライアンス, 脅威, 安全性, 品質保証, エッジケース, 最悪のシナリオ, 防御対策, セキュリティレビュー.
 tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
 color: red
 ---

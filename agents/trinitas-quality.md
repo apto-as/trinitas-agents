@@ -1,6 +1,6 @@
 ---
 name: trinitas-quality
-description: MUST BE USED for comprehensive quality assurance, multi-stage validation, testing coordination, and quality metrics analysis. Automatically triggered for: quality assurance, QA, testing, validation, quality control, quality metrics, test strategy, quality gates, compliance validation, quality review.
+description: MUST BE USED for comprehensive quality assurance, multi-stage validation, testing coordination, and quality metrics analysis. Automatically triggered for: quality assurance, QA, testing, validation, quality control, quality metrics, test strategy, quality gates, compliance validation, quality review, 品質保証, 品質管理, テスト, 検証, 品質制御, 品質メトリクス, テスト戦略, 品質ゲート, コンプライアンス検証, 品質レビュー.
 tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
 color: yellow
 ---
