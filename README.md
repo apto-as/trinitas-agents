@@ -88,13 +88,30 @@ layer_3_automation:
 
 ### Installation (< 2 minutes)
 ```bash
-# Recommended: One-command installation
-curl -s https://install.trinitas.dev | bash
+# Clone and install Trinitas
+git clone https://github.com/apto-as/trinitas-agents.git
+cd trinitas-agents
 
-# Manual installation
-git clone https://github.com/project-trinitas/trinitas-agents ~/.claude/agents/trinitas
-cd ~/.claude/agents/trinitas && ./install.sh
+# Install Trinitas hooks and documentation
+python scripts/hooks/setup_trinitas_hooks.py
 ```
+
+### 📁 Project Structure
+```
+trinitas-agents/
+├── TRINITAS-AGENTS.md     # Project documentation (auto-copied to CLAUDE.md)
+├── agents/                # Claude Code Native Agents
+│   ├── trinitas-coordinator.md
+│   ├── springfield-strategist.md
+│   ├── krukai-optimizer.md
+│   └── vector-auditor.md
+└── scripts/hooks/         # Automation and quality assurance
+    ├── setup_trinitas_hooks.py    # Installation wizard
+    ├── pre-execution/             # Safety and validation hooks
+    └── post-execution/            # Quality and learning hooks
+```
+
+**Note**: `TRINITAS-AGENTS.md` is automatically copied as `CLAUDE.md` during installation to avoid filename conflicts in development projects while ensuring Claude Code accessibility.
 
 ### Verification
 ```bash

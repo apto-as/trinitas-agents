@@ -25,9 +25,16 @@ class TrinitasHooksInstaller:
         self.hooks_dir = self.trinitas_root / 'scripts' / 'hooks'
         self.template_file = self.hooks_dir / 'settings' / 'claude-code-hooks-template.json'
         
+        # Trinitas documentation files
+        self.trinitas_docs_source = self.trinitas_root / 'TRINITAS-AGENTS.md'
+        
         # Claude Code settings locations
         self.claude_user_settings = Path.home() / '.claude' / 'settings.json'
         self.claude_project_settings = Path('.claude') / 'settings.json'
+        
+        # Claude Code documentation target locations
+        self.claude_user_docs = Path.home() / '.claude' / 'CLAUDE.md'
+        self.claude_project_docs = Path('.claude') / 'CLAUDE.md'
         
         # Springfield: User-friendly setup options
         self.setup_modes = {
@@ -78,6 +85,10 @@ class TrinitasHooksInstaller:
         # Check template file exists
         if not self.template_file.exists():
             issues.append(f"Template file not found: {self.template_file}")
+        
+        # Check Trinitas documentation exists
+        if not self.trinitas_docs_source.exists():
+            issues.append(f"Trinitas documentation not found: {self.trinitas_docs_source}")
         
         # Check hooks scripts exist
         required_scripts = [
@@ -176,6 +187,33 @@ class TrinitasHooksInstaller:
         customized_config['_installation_timestamp'] = str(Path().absolute())
         
         return customized_config
+    
+    def install_documentation(self, install_location: str) -> bool:
+        """
+        Install Trinitas documentation as CLAUDE.md
+        Springfield: Friendly documentation setup for easy access
+        """
+        
+        if install_location == 'user':
+            target_docs = self.claude_user_docs
+            target_docs.parent.mkdir(parents=True, exist_ok=True)
+        elif install_location == 'project':
+            target_docs = self.claude_project_docs
+            target_docs.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            print(f"❌ Invalid documentation location: {install_location}")
+            return False
+        
+        try:
+            # Copy TRINITAS-AGENTS.md to CLAUDE.md
+            shutil.copy2(self.trinitas_docs_source, target_docs)
+            
+            print(f"✅ Trinitas documentation installed as: {target_docs}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to install documentation: {e}")
+            return False
     
     def install_hooks_config(self, config: Dict, install_location: str) -> bool:
         """
@@ -363,6 +401,12 @@ Vector: Secure installation with comprehensive validation and safety checks.
             print("❌ Failed to set script permissions")
             return False
         
+        # Install documentation
+        print(f"\n📚 Installing Trinitas documentation...")
+        if not self.install_documentation(location):
+            print("❌ Documentation installation failed")
+            return False
+        
         # Install configuration
         print(f"\n📦 Installing hooks to {location} settings...")
         if not self.install_hooks_config(customized_config, location):
@@ -404,9 +448,13 @@ Run this command to test the hooks:
 claude bash "{test_command}"
 
 📚 For more information:
+• View documentation: The complete Trinitas guide is now available as CLAUDE.md in your Claude settings
 • View your hooks: claude --debug (to see hook execution)
 • Modify settings: Edit your Claude Code settings.json file
 • Disable specific hooks: Comment out or remove from settings
+
+📖 Trinitas Documentation Location:
+• {location.upper()} mode: {"~/.claude/CLAUDE.md" if location == "user" else ".claude/CLAUDE.md"}
 
 Thank you for choosing Trinitas! We're here to enhance your development experience.
 """)
@@ -436,6 +484,9 @@ def main():
         customized_config = installer.customize_config_for_mode(template_config, 'standard')
         
         if not installer.make_scripts_executable():
+            sys.exit(1)
+        
+        if not installer.install_documentation('project'):
             sys.exit(1)
         
         if not installer.install_hooks_config(customized_config, 'project'):
