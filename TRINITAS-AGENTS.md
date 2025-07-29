@@ -53,17 +53,17 @@ python scripts/hooks/setup_trinitas_hooks.py
 
 ### 2. Basic Usage
 ```bash
-# Comprehensive analysis with Trinity meta-persona
-/sc:trinitas analyze authentication-system
+# Comprehensive analysis (auto-triggers trinitas-coordinator)
+claude "Analyze our authentication system comprehensively from strategic, technical, and security perspectives"
 
 # Quality improvement with iterative refinement
-/improve code-quality --loop
+claude "Improve the code quality of our API endpoints systematically"
 
 # Security audit with detailed report
-/security-audit
+claude "Conduct a comprehensive security audit of our payment system"
 
-# Multi-perspective analysis
-/multi-perspective frontend,backend,security
+# Multi-perspective analysis (auto-triggers based on keywords)
+claude "Evaluate our frontend architecture, backend performance, and security posture"
 ```
 
 ## 🛠️ Available Agents
@@ -114,34 +114,34 @@ Trinitasは、Claude Codeの実行前後に自動的に品質とセキュリテ�
 
 ## 🎨 Command Examples
 
-### Trinitas Mode Commands
+### Trinity Intelligence Commands
 ```bash
-# System architecture design
-/sc:trinitas design microservices-platform --think-hard
+# System architecture design (triggers trinitas-coordinator + springfield-strategist)
+claude "Design a comprehensive microservices platform architecture with strategic planning"
 
-# Comprehensive security audit
-/sc:trinitas audit payment-system --focus security
+# Comprehensive security audit (triggers trinitas-coordinator + vector-auditor)
+claude "Conduct a thorough security audit of our payment system with risk analysis"
 
-# Performance optimization
-/sc:trinitas optimize database-queries --wave-mode
+# Performance optimization (triggers trinitas-coordinator + krukai-optimizer)
+claude "Optimize our database queries for maximum performance and efficiency"
 
-# Multi-stage improvement
-/sc:trinitas improve legacy-system --wave-strategy progressive
+# Multi-stage improvement (triggers trinitas-workflow + quality assurance)
+claude "Systematically improve our legacy system with progressive enhancement strategy"
 ```
 
-### Standard Commands with Trinity Intelligence
+### Individual Agent Commands
 ```bash
-# Code analysis with deep thinking
-/analyze authentication --think-hard
+# Strategic planning (triggers springfield-strategist)
+claude "Help me plan our Q2 development roadmap with team coordination"
 
-# Security-focused improvement
-/improve api-endpoints --focus security --validate
+# Technical optimization (triggers krukai-optimizer)
+claude "Review this code for performance bottlenecks and optimization opportunities"
 
-# Iterative quality enhancement
-/improve code-quality --loop --iterations 5
+# Security assessment (triggers vector-auditor)
+claude "Analyze our API endpoints for security vulnerabilities and compliance"
 
-# Multi-perspective review
-/multi-perspective architect,security,performance --agent
+# Quality workflow (triggers trinitas-quality)
+claude "Set up comprehensive testing strategy with quality gates"
 ```
 
 ## 🌟 Special Features
