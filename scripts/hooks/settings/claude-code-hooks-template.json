@@ -1,0 +1,186 @@
+{
+  "_comment": "Project Trinitas v2.0 - Claude Code Hooks Integration Template",
+  "_description": "This template provides comprehensive hook integration for the Trinitas meta-intelligence system. Copy this configuration to your Claude Code settings files (~/.claude/settings.json or .claude/settings.json in your project).",
+  "_authors": "Springfield, Krukai, Vector - Trinitas Meta-Intelligence System",
+  "_version": "2.0.0",
+  "_last_updated": "2025-01-28",
+  
+  "hooks": {
+    "_comment_pre_tool_use": "Pre-execution validation and security checks",
+    "PreToolUse": [
+      {
+        "_description": "Dangerous command detection for all Bash operations",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/pre-execution/dangerous_command_check.py \"$1\" \"$2\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "_description": "Resource validation for resource-intensive operations",
+        "matcher": "Bash|Write|Edit|MultiEdit|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/pre-execution/resource_validator.py \"$1\" \"$2\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "_description": "Pre-execution security validation for file operations",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/pre-execution/security_pre_check.py \"$1\" \"$2\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    
+    "_comment_post_tool_use": "Post-execution quality assurance and learning capture",
+    "PostToolUse": [
+      {
+        "_description": "Code quality validation after file modifications",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/post-execution/quality_validator.py",
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "_description": "Security vulnerability scanning after code changes",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/post-execution/security_scanner.py",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "_description": "Knowledge extraction and learning persistence",
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/post-execution/knowledge_persister.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    
+    "_comment_user_prompt_submit": "Pre-processing and context enhancement",
+    "UserPromptSubmit": [
+      {
+        "_description": "Trinitas context enhancement and prompt optimization",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/utils/prompt_enhancer.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    
+    "_comment_stop": "Session completion and learning consolidation",
+    "Stop": [
+      {
+        "_description": "Session learning consolidation and knowledge indexing",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/utils/session_consolidator.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    
+    "_comment_notification": "Trinitas status notifications and system monitoring",
+    "Notification": [
+      {
+        "_description": "Trinitas system status monitoring and user notifications",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/utils/trinitas_notifier.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  
+  "_configuration_options": {
+    "_comment": "Optional configuration overrides for different environments",
+    "production": {
+      "_description": "Production environment - enhanced security, reduced verbosity",
+      "security_level": "maximum",
+      "quality_threshold": 80,
+      "performance_monitoring": true,
+      "knowledge_persistence": "essential_only"
+    },
+    "development": {
+      "_description": "Development environment - balanced security and performance",
+      "security_level": "standard",
+      "quality_threshold": 60,
+      "performance_monitoring": true,
+      "knowledge_persistence": "comprehensive"
+    },
+    "learning": {
+      "_description": "Learning environment - maximum knowledge capture",
+      "security_level": "standard",
+      "quality_threshold": 40,
+      "performance_monitoring": false,
+      "knowledge_persistence": "maximum"
+    }
+  },
+  
+  "_installation_instructions": [
+    "1. Copy this entire hooks section to your Claude Code settings.json",
+    "2. Ensure the trinitas-agents repository is available at $CLAUDE_PROJECT_DIR",
+    "3. Make all Python scripts executable: chmod +x scripts/hooks/**/*.py",
+    "4. Verify Python dependencies are installed: pip install -r requirements.txt",
+    "5. Test with: claude --debug to see hook execution",
+    "6. Customize timeout values based on your system performance",
+    "7. Disable specific hooks by commenting out or removing matcher patterns"
+  ],
+  
+  "_customization_guide": {
+    "disable_security_scanning": "Remove or comment out security_scanner.py hook",
+    "reduce_quality_checking": "Increase quality_threshold or remove quality_validator.py",
+    "minimize_knowledge_capture": "Set knowledge_persistence to 'essential_only' or remove knowledge_persister.py",
+    "performance_optimization": "Reduce timeout values and disable non-essential hooks",
+    "development_focus": "Keep only quality and security hooks, disable knowledge persistence",
+    "learning_focus": "Enable all hooks with maximum timeout values"
+  },
+  
+  "_troubleshooting": {
+    "hooks_not_executing": "Check file permissions and Python path",
+    "timeout_errors": "Increase timeout values in hook configuration",
+    "permission_denied": "Ensure scripts are executable with chmod +x",
+    "python_errors": "Verify Python dependencies and environment setup",
+    "claude_project_dir_error": "Ensure trinitas-agents is in your project directory",
+    "hook_output_missing": "Use claude --debug to see detailed execution logs"
+  },
+  
+  "_security_considerations": [
+    "All hooks execute with your user permissions - review scripts before use",
+    "Sensitive data is automatically sanitized in knowledge persistence",
+    "Security hooks may block operations - review warnings carefully",
+    "Production environments should use stricter security settings",
+    "Regularly update hook scripts to maintain security effectiveness"
+  ]
+}
