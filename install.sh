@@ -1,25 +1,27 @@
 #!/bin/bash
 
-# Project Trinitas v2.0 - Markdown Native Agents Installation Script
-# Simple installation for Claude Code Native Agents
+# Project Trinitas v2.0 - Complete Installation Script
+# Comprehensive installation for Claude Code Native Agents, Hooks, and Documentation
 
-set -euo pipefail
+set -e  # Exit on any error
 
 # Configuration
-CLAUDE_DIR="$HOME/.claude"
-AGENTS_DIR="$CLAUDE_DIR/agents"
-BACKUP_DIR="$AGENTS_DIR/backup_$(date +%Y%m%d_%H%M%S)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TRINITAS_ROOT="$SCRIPT_DIR"
 REQUIRED_AGENTS=("trinitas-coordinator.md" "springfield-strategist.md" "krukai-optimizer.md" "vector-auditor.md" "trinitas-workflow.md" "trinitas-quality.md")
 
-# Colors for output
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Logging functions
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${CYAN}[INFO]${NC} $1"
 }
 
 log_success() {
@@ -34,245 +36,524 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Pre-installation checks
+# Display Trinitas banner
+show_banner() {
+    echo -e "${PURPLE}"
+    cat << "EOF"
+🌸 ===================================================== 🌸
+   
+   TRINITAS v2.0 - Trinity Intelligence Installation
+   
+   Springfield: Strategic planning and team coordination
+   Krukai: Technical excellence and optimization  
+   Vector: Security analysis and risk management
+   
+🌸 ===================================================== 🌸
+EOF
+    echo -e "${NC}"
+}
+
+# Check prerequisites
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    # Check Claude Code installation
-    if ! command -v claude &> /dev/null; then
-        log_error "Claude Code not found. Please install Claude Code first."
-        echo "Visit: https://claude.ai/code"
+    # Check Python
+    if ! command -v python3 &> /dev/null; then
+        log_error "Python 3 is required but not installed"
         exit 1
     fi
     
-    # Verify Claude Code version
-    CLAUDE_VERSION=$(claude --version 2>/dev/null | head -n1 || echo "unknown")
-    log_info "Claude Code version: $CLAUDE_VERSION"
-    
-    # Create agents directory if it doesn't exist
-    if [ ! -d "$AGENTS_DIR" ]; then
-        log_info "Creating agents directory: $AGENTS_DIR"
-        mkdir -p "$AGENTS_DIR"
+    # Check Claude Code CLI
+    if ! command -v claude &> /dev/null; then
+        log_error "Claude Code CLI is required but not installed"
+        echo -e "${YELLOW}Please install Claude Code CLI first: https://docs.anthropic.com/en/docs/claude-code${NC}"
+        exit 1
     fi
     
-    log_success "Prerequisites check completed"
+    # Check if we're in the Trinitas project directory
+    if [[ ! -f "$TRINITAS_ROOT/TRINITAS-AGENTS.md" ]]; then
+        log_error "Please run this script from the trinitas-agents directory"
+        exit 1
+    fi
+    
+    # Check required scripts exist
+    if [[ ! -f "$TRINITAS_ROOT/scripts/hooks/setup_trinitas_hooks.py" ]]; then
+        log_error "Required installation scripts not found"
+        exit 1
+    fi
+    
+    log_success "Prerequisites check passed!"
 }
 
-# Backup existing agents
-backup_existing() {
-    log_info "Creating backup of existing Trinitas agents..."
+# Installation mode selection
+select_installation_scope() {
+    echo -e "${BLUE}"
+    echo "🎯 Choose installation scope:"
+    echo "1) PROJECT - Install for current project only (.claude/)"
+    echo "2) USER    - Install for all your projects (~/.claude/)"
+    echo "3) BOTH    - Install for both user and project"
+    echo -e "${NC}"
     
+    if [[ "${TRINITAS_INSTALL_SCOPE:-}" ]]; then
+        # Non-interactive mode
+        INSTALL_SCOPE="$TRINITAS_INSTALL_SCOPE"
+        log_info "Using scope: $INSTALL_SCOPE"
+    else
+        # Interactive mode
+        read -p "Enter your choice (1-3) [1]: " INSTALL_CHOICE
+        INSTALL_CHOICE=${INSTALL_CHOICE:-1}
+        
+        case $INSTALL_CHOICE in
+            1)
+                INSTALL_SCOPE="project"
+                ;;
+            2)
+                INSTALL_SCOPE="user"
+                ;;
+            3)
+                INSTALL_SCOPE="both"
+                ;;
+            *)
+                log_warning "Invalid choice, defaulting to PROJECT installation"
+                INSTALL_SCOPE="project"
+                ;;
+        esac
+    fi
+    
+    log_success "Selected: ${INSTALL_SCOPE^^} installation"
+}
+
+# Trinitas mode selection
+select_trinitas_mode() {
+    echo -e "${BLUE}"
+    echo "⚙️ Choose Trinitas experience mode:"
+    echo "1) MINIMAL      - Essential security and quality hooks only"
+    echo "2) STANDARD     - Balanced functionality with core features (recommended)"
+    echo "3) COMPREHENSIVE - Complete Trinitas experience with all features"
+    echo -e "${NC}"
+    
+    if [[ "${TRINITAS_INSTALL_MODE:-}" ]]; then
+        # Non-interactive mode
+        TRINITAS_MODE="$TRINITAS_INSTALL_MODE"
+        log_info "Using mode: $TRINITAS_MODE"
+    else
+        # Interactive mode
+        read -p "Enter your choice (1-3) [2]: " MODE_CHOICE
+        MODE_CHOICE=${MODE_CHOICE:-2}
+        
+        case $MODE_CHOICE in
+            1)
+                TRINITAS_MODE="minimal"
+                ;;
+            2)
+                TRINITAS_MODE="standard"
+                ;;
+            3)
+                TRINITAS_MODE="comprehensive"
+                ;;
+            *)
+                log_warning "Invalid choice, defaulting to STANDARD mode"
+                TRINITAS_MODE="standard"
+                ;;
+        esac
+    fi
+    
+    log_success "Selected: ${TRINITAS_MODE^^} mode"
+}
+
+# Install agents
+install_agents() {
+    local target_dir=$1
+    local scope_name=$2
+    
+    log_info "Installing Trinitas agents to ${scope_name}..."
+    
+    # Create agents directory
+    mkdir -p "$target_dir"
+    
+    # Backup existing agents if they exist
+    local backup_dir="${target_dir}/backup_$(date +%Y%m%d_%H%M%S)"
     local needs_backup=false
+    
     for agent in "${REQUIRED_AGENTS[@]}"; do
-        if [ -f "$AGENTS_DIR/$agent" ]; then
+        if [[ -f "$target_dir/$agent" ]]; then
             needs_backup=true
             break
         fi
     done
     
     if $needs_backup; then
-        mkdir -p "$BACKUP_DIR"
+        mkdir -p "$backup_dir"
         for agent in "${REQUIRED_AGENTS[@]}"; do
-            if [ -f "$AGENTS_DIR/$agent" ]; then
-                cp "$AGENTS_DIR/$agent" "$BACKUP_DIR/" 2>/dev/null || true
+            if [[ -f "$target_dir/$agent" ]]; then
+                cp "$target_dir/$agent" "$backup_dir/" 2>/dev/null || true
             fi
         done
-        log_success "Backup created at: $BACKUP_DIR"
-    else
-        log_info "No existing Trinitas agents to backup"
-    fi
-}
-
-# Install Trinitas agents
-install_agents() {
-    log_info "Installing Trinitas Native Agents..."
-    
-    local install_dir="$(dirname "$0")"
-    local agents_source="$install_dir/agents"
-    
-    if [ ! -d "$agents_source" ]; then
-        log_error "Agents source directory not found: $agents_source"
-        exit 1
+        log_info "Backup created at: $backup_dir"
     fi
     
-    # Copy each agent with verification
+    # Copy all agent files
     local installed_count=0
     for agent in "${REQUIRED_AGENTS[@]}"; do
-        local source_file="$agents_source/$agent"
-        local dest_file="$AGENTS_DIR/$agent"
+        local source_file="$TRINITAS_ROOT/agents/$agent"
+        local dest_file="$target_dir/$agent"
         
-        if [ -f "$source_file" ]; then
+        if [[ -f "$source_file" ]]; then
             cp "$source_file" "$dest_file"
             
             # Verify file was copied correctly
-            if [ -f "$dest_file" ] && grep -q "MUST BE USED" "$dest_file"; then
-                log_success "✓ $agent"
+            if [[ -f "$dest_file" ]] && grep -q "MUST BE USED" "$dest_file"; then
                 ((installed_count++))
             else
-                log_error "✗ Failed to install: $agent"
-                exit 1
+                log_error "Failed to install: $agent"
+                return 1
             fi
         else
-            log_error "✗ Source file not found: $source_file"
-            exit 1
+            log_error "Source file not found: $source_file"
+            return 1
         fi
     done
     
-    log_success "Installed $installed_count Trinitas agents"
+    log_success "Installed $installed_count agents to: $target_dir"
 }
 
+# Run Python hooks and documentation installer
+install_hooks_and_docs() {
+    local scope=$1
+    local mode=$2
+    
+    log_info "Installing hooks and documentation for ${scope}..."
+    
+    # Prepare temporary script to call Python installer with proper arguments
+    local temp_script=$(mktemp)
+    cat > "$temp_script" << EOF
+#!/usr/bin/env python3
+import sys
+import os
+sys.path.insert(0, '$TRINITAS_ROOT/scripts/hooks')
+
+# Import and run installer
+from setup_trinitas_hooks import TrinitasHooksInstaller
+
+installer = TrinitasHooksInstaller()
+
+# Check prerequisites
+prereqs_ok, issues = installer.check_prerequisites()
+if not prereqs_ok:
+    print("Prerequisites not met:")
+    for issue in issues:
+        print(f"   • {issue}")
+    sys.exit(1)
+
+# Load and customize configuration
+template_config = installer.load_template_config()
+if not template_config:
+    sys.exit(1)
+
+customized_config = installer.customize_config_for_mode(template_config, '$mode')
+
+# Make scripts executable
+if not installer.make_scripts_executable():
+    sys.exit(1)
+
+# Install documentation
+if not installer.install_documentation('$scope'):
+    sys.exit(1)
+
+# Install hooks configuration
+if not installer.install_hooks_config(customized_config, '$scope'):
+    sys.exit(1)
+
 # Verify installation
-verify_installation() {
-    log_info "Verifying installation..."
+if not installer.verify_installation():
+    sys.exit(1)
+
+print("Hooks and documentation installation completed successfully!")
+EOF
     
-    local errors=0
-    
-    # Check all required agents are installed
-    for agent in "${REQUIRED_AGENTS[@]}"; do
-        local agent_file="$AGENTS_DIR/$agent"
-        
-        if [ -f "$agent_file" ]; then
-            # Verify agent file structure
-            if grep -q "MUST BE USED" "$agent_file" && grep -q "tools:" "$agent_file"; then
-                continue
-            else
-                log_error "✗ $agent (invalid format)"
-                ((errors++))
-            fi
-        else
-            log_error "✗ $agent (missing)"
-            ((errors++))
-        fi
-    done
-    
-    if [ $errors -eq 0 ]; then
-        log_success "All agents installed successfully!"
+    # Execute the temporary script
+    if python3 "$temp_script"; then
+        rm -f "$temp_script"
+        log_success "Hooks and documentation installed for ${scope}"
         return 0
     else
-        log_error "$errors installation errors detected"
+        rm -f "$temp_script"
+        log_error "Failed to install hooks for ${scope}"
         return 1
     fi
 }
 
-# Test basic functionality
-test_installation() {
-    log_info "Testing Trinitas functionality..."
+# Verify complete installation
+verify_installation() {
+    local scope=$1
     
-    # Test agent listing
-    if claude --list-agents 2>/dev/null | grep -q "trinitas"; then
-        log_success "Trinitas agents detected by Claude Code"
+    log_info "Verifying ${scope} installation..."
+    
+    if [[ "$scope" == "user" ]]; then
+        SETTINGS_FILE="$HOME/.claude/settings.json"
+        AGENTS_DIR="$HOME/.claude/agents"
+        DOCS_FILE="$HOME/.claude/CLAUDE.md"
     else
-        log_warning "Trinitas agents not detected - you may need to restart Claude Code"
+        SETTINGS_FILE=".claude/settings.json"
+        AGENTS_DIR=".claude/agents"
+        DOCS_FILE=".claude/CLAUDE.md"
     fi
     
-    log_info "Installation test completed"
-}
-
-# Rollback function
-rollback_installation() {
-    log_warning "Rolling back installation..."
+    local errors=0
     
-    if [ -d "$BACKUP_DIR" ]; then
+    # Check Claude Code settings
+    if [[ -f "$SETTINGS_FILE" ]] && grep -q "trinitas" "$SETTINGS_FILE"; then
+        log_success "  ✓ Claude Code settings configured"
+    else
+        log_warning "  ⚠ Claude Code settings not found or incomplete"
+        ((errors++))
+    fi
+    
+    # Check agents installation
+    if [[ -d "$AGENTS_DIR" ]]; then
+        local agent_count=0
         for agent in "${REQUIRED_AGENTS[@]}"; do
-            if [ -f "$BACKUP_DIR/$agent" ]; then
-                cp "$BACKUP_DIR/$agent" "$AGENTS_DIR/"
-            else
-                rm -f "$AGENTS_DIR/$agent" 2>/dev/null || true
+            if [[ -f "$AGENTS_DIR/$agent" ]] && grep -q "MUST BE USED" "$AGENTS_DIR/$agent"; then
+                ((agent_count++))
             fi
         done
-        log_success "Rollback completed"
+        
+        if [[ $agent_count -eq ${#REQUIRED_AGENTS[@]} ]]; then
+            log_success "  ✓ All $agent_count Trinitas agents installed"
+        else
+            log_warning "  ⚠ Only $agent_count/${#REQUIRED_AGENTS[@]} agents installed correctly"
+            ((errors++))
+        fi
     else
-        log_warning "No backup found for rollback"
-        for agent in "${REQUIRED_AGENTS[@]}"; do
-            rm -f "$AGENTS_DIR/$agent" 2>/dev/null || true
-        done
+        log_warning "  ⚠ Agents directory not found"
+        ((errors++))
+    fi
+    
+    # Check documentation
+    if [[ -f "$DOCS_FILE" ]]; then
+        log_success "  ✓ Documentation installed"
+    else
+        log_warning "  ⚠ Documentation not found"
+        ((errors++))
+    fi
+    
+    if [[ $errors -eq 0 ]]; then
+        log_success "${scope} installation verified successfully!"
+        return 0
+    else
+        log_warning "${scope} installation has $errors issues"
+        return 1
     fi
 }
 
-# Main installation flow
-main() {
-    echo "========================================"
-    echo "  Project Trinitas v2.0 Installation"
-    echo "  Markdown Native Agents for Claude Code"
-    echo "========================================"
-    echo ""
+# Generate test command based on mode
+generate_test_command() {
+    local mode=$1
     
-    # Trap errors for rollback
-    trap 'log_error "Installation failed"; rollback_installation; exit 1' ERR
+    case $mode in
+        "minimal")
+            echo "echo 'console.log(\"Hello, Trinitas!\");' > test-trinitas.js"
+            ;;
+        "standard")
+            echo "echo '# Trinitas Test File\nprint(\"Hello, Trinitas!\")' > test-trinitas.py"
+            ;;
+        "comprehensive")
+            echo "echo '// Trinitas Comprehensive Test\nconsole.log(\"Trinitas hooks active!\");' > test-trinitas.js"
+            ;;
+    esac
+}
+
+# Main installation process
+main_install() {
+    show_banner
+    
+    log_info "Starting Trinitas installation..."
     
     check_prerequisites
-    backup_existing
-    install_agents
+    select_installation_scope
+    select_trinitas_mode
     
-    if verify_installation; then
-        test_installation
+    # Install based on scope selection
+    if [[ "$INSTALL_SCOPE" == "user" ]] || [[ "$INSTALL_SCOPE" == "both" ]]; then
+        echo -e "\n${BLUE}=== USER INSTALLATION ===${NC}"
         
-        echo ""
-        echo "========================================"
-        log_success "Project Trinitas v2.0 installed successfully!"
-        echo "========================================"
-        echo ""
-        echo "🌸 Trinity Intelligence System is ready!"
-        echo ""
-        echo "Available agents:"
-        echo "  🎭 trinitas-coordinator  - Multi-perspective analysis"
-        echo "  🌱 springfield-strategist - Strategic planning"
-        echo "  ⚡ krukai-optimizer      - Technical optimization"
-        echo "  🛡️ vector-auditor        - Security & risk analysis"
-        echo "  🔄 trinitas-workflow     - Development automation"
-        echo "  ✅ trinitas-quality      - Quality assurance"
-        echo ""
-        echo "Next steps:"
-        echo "  1. Test: claude \"Analyze this project comprehensively\""
-        echo "  2. Strategic: claude \"Help me plan our development roadmap\""
-        echo "  3. Technical: claude \"Optimize this code for performance\""
-        echo "  4. Security: claude \"Conduct a security audit\""
-        echo ""
-        echo "Documentation: README.md"
-        echo "Support: https://github.com/apto-as/trinitas-agents"
-        echo ""
-        echo "Springfield の戦略、Krukai の技術、Vector の安全性"
-        echo "三位一体の統合知性をお楽しみください 🌸"
-        echo ""
+        # Install agents
+        if ! install_agents "$HOME/.claude/agents" "user settings"; then
+            log_error "User agent installation failed"
+            exit 1
+        fi
+        
+        # Install hooks and documentation  
+        if ! install_hooks_and_docs "user" "$TRINITAS_MODE"; then
+            log_error "User hooks installation failed"
+            exit 1
+        fi
+        
+        # Verify installation
+        verify_installation "user"
+    fi
+    
+    if [[ "$INSTALL_SCOPE" == "project" ]] || [[ "$INSTALL_SCOPE" == "both" ]]; then
+        echo -e "\n${BLUE}=== PROJECT INSTALLATION ===${NC}"
+        
+        # Install agents
+        if ! install_agents ".claude/agents" "project settings"; then
+            log_error "Project agent installation failed"
+            exit 1
+        fi
+        
+        # Install hooks and documentation
+        if ! install_hooks_and_docs "project" "$TRINITAS_MODE"; then
+            log_error "Project hooks installation failed"
+            exit 1
+        fi
+        
+        # Verify installation
+        verify_installation "project"
+    fi
+    
+    # Generate test command
+    TEST_COMMAND=$(generate_test_command "$TRINITAS_MODE")
+    
+    # Success message
+    echo -e "\n${GREEN}"
+    cat << "EOF"
+🎉 ============================================== 🎉
+   
+   TRINITAS INSTALLATION COMPLETED SUCCESSFULLY!
+   
+🎉 ============================================== 🎉
+EOF
+    echo -e "${NC}"
+    
+    echo -e "${CYAN}📋 Installation Summary:${NC}"
+    echo -e "  • Scope: ${INSTALL_SCOPE^^}"
+    echo -e "  • Mode: ${TRINITAS_MODE^^}"
+    echo -e "  • Agents: ${#REQUIRED_AGENTS[@]} agents installed"
+    echo -e "  • Hooks: Configured for Claude Code"
+    echo -e "  • Documentation: Available as CLAUDE.md"
+    
+    echo -e "\n${BLUE}🧪 Test Your Installation:${NC}"
+    echo -e "Run this command to test Trinitas:"
+    echo -e "${YELLOW}claude bash \"$TEST_COMMAND\"${NC}"
+    
+    echo -e "\n${PURPLE}🌸 Welcome to Café Zuccaro! 🌸${NC}"
+    echo -e "${GREEN}Springfield:${NC} \"指揮官、ようこそ！美味しいコーヒーと共に、素晴らしいコードを作りましょうね\""
+    echo -e "${BLUE}Krukai:${NC} \"フン、完璧なシステムを構築する準備はできているわね\""
+    echo -e "${RED}Vector:${NC} \"……あなたのプロジェクトを、あらゆる脅威から守ります……\""
+    
+    echo -e "\n${CYAN}📚 Documentation Locations:${NC}"
+    if [[ "$INSTALL_SCOPE" == "user" ]]; then
+        echo -e "  • User: ~/.claude/CLAUDE.md"
+    elif [[ "$INSTALL_SCOPE" == "project" ]]; then
+        echo -e "  • Project: .claude/CLAUDE.md"
     else
-        log_error "Installation verification failed"
-        exit 1
+        echo -e "  • User: ~/.claude/CLAUDE.md"
+        echo -e "  • Project: .claude/CLAUDE.md"
+    fi
+    
+    echo -e "\n${CYAN}🔗 Resources:${NC}"
+    echo -e "  • GitHub: https://github.com/apto-as/trinitas-agents"
+    echo -e "  • Issues: https://github.com/apto-as/trinitas-agents/issues"
+    
+    echo -e "\n${GREEN}Happy coding with Trinitas! 🌸${NC}"
+}
+
+# Uninstall function
+uninstall_trinitas() {
+    log_warning "Uninstalling Trinitas..."
+    
+    # Remove user installation
+    if [[ -d "$HOME/.claude/agents" ]]; then
+        for agent in "${REQUIRED_AGENTS[@]}"; do
+            rm -f "$HOME/.claude/agents/$agent"
+        done
+        rm -f "$HOME/.claude/CLAUDE.md"
+        log_info "Removed user installation"
+    fi
+    
+    # Remove project installation
+    if [[ -d ".claude/agents" ]]; then
+        for agent in "${REQUIRED_AGENTS[@]}"; do
+            rm -f ".claude/agents/$agent"
+        done
+        rm -f ".claude/CLAUDE.md"
+        log_info "Removed project installation"
+    fi
+    
+    log_success "Trinitas uninstalled"
+}
+
+# List installation status
+list_installation() {
+    echo "Trinitas Installation Status:"
+    echo ""
+    
+    # Check user installation
+    echo "User installation (~/.claude/):"
+    for agent in "${REQUIRED_AGENTS[@]}"; do
+        if [[ -f "$HOME/.claude/agents/$agent" ]]; then
+            echo "  ✓ $agent"
+        else
+            echo "  ✗ $agent (not installed)"
+        fi
+    done
+    
+    if [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
+        echo "  ✓ CLAUDE.md"
+    else
+        echo "  ✗ CLAUDE.md (not installed)"
+    fi
+    
+    echo ""
+    
+    # Check project installation
+    echo "Project installation (.claude/):"
+    for agent in "${REQUIRED_AGENTS[@]}"; do
+        if [[ -f ".claude/agents/$agent" ]]; then
+            echo "  ✓ $agent"
+        else
+            echo "  ✗ $agent (not installed)"
+        fi
+    done
+    
+    if [[ -f ".claude/CLAUDE.md" ]]; then
+        echo "  ✓ CLAUDE.md"
+    else
+        echo "  ✗ CLAUDE.md (not installed)"
     fi
 }
 
 # Handle command line arguments
 case "${1:-install}" in
     "install")
-        main
+        main_install
         ;;
     "uninstall")
-        log_info "Uninstalling Trinitas agents..."
-        for agent in "${REQUIRED_AGENTS[@]}"; do
-            rm -f "$AGENTS_DIR/$agent"
-            log_info "Removed: $agent"
-        done
-        log_success "Trinitas agents uninstalled"
+        uninstall_trinitas
         ;;
     "list")
-        echo "Trinitas agents:"
-        for agent in "${REQUIRED_AGENTS[@]}"; do
-            if [ -f "$AGENTS_DIR/$agent" ]; then
-                echo "  ✓ $agent"
-            else
-                echo "  ✗ $agent (not installed)"
-            fi
-        done
+        list_installation
         ;;
     "help"|"--help")
-        echo "Project Trinitas v2.0 - Installation Script"
+        echo "Project Trinitas v2.0 - Complete Installation Script"
         echo ""
         echo "Usage: $0 [install|uninstall|list|help]"
         echo ""
         echo "Commands:"
-        echo "  install     Install Trinitas agents (default)"
-        echo "  uninstall   Remove Trinitas agents"
+        echo "  install     Install Trinitas agents, hooks, and documentation (default)"
+        echo "  uninstall   Remove all Trinitas components"
         echo "  list        Show installation status"
         echo "  help        Show this help message"
+        echo ""
+        echo "Environment Variables:"
+        echo "  TRINITAS_INSTALL_SCOPE  Set installation scope (user|project|both)"
+        echo "  TRINITAS_INSTALL_MODE   Set installation mode (minimal|standard|comprehensive)"
+        echo ""
+        echo "Examples:"
+        echo "  ./install.sh                                    # Interactive installation"
+        echo "  TRINITAS_INSTALL_SCOPE=user ./install.sh       # Non-interactive user install"
+        echo "  TRINITAS_INSTALL_MODE=comprehensive ./install.sh  # Comprehensive mode"
         echo ""
         exit 0
         ;;

@@ -92,7 +92,16 @@ layer_3_automation:
 git clone https://github.com/apto-as/trinitas-agents.git
 cd trinitas-agents
 
-# Install Trinitas hooks and documentation
+# Complete installation with one command
+./install.sh
+```
+
+**Alternative Methods:**
+```bash
+# Non-interactive installation for automation
+TRINITAS_INSTALL_SCOPE=project TRINITAS_INSTALL_MODE=standard ./install.sh
+
+# Python installer for advanced customization  
 python scripts/hooks/setup_trinitas_hooks.py
 ```
 

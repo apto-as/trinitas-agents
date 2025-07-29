@@ -36,11 +36,20 @@ Project Trinitasは、『ドールズフロントライン2：エクシリウム
 git clone https://github.com/apto-as/trinitas-agents.git
 cd trinitas-agents
 
-# Install Trinitas hooks and documentation for Claude Code
+# Complete one-command installation
+./install.sh
+```
+
+**Alternative Installation Methods:**
+```bash
+# Non-interactive installation for CI/CD
+TRINITAS_INSTALL_SCOPE=project TRINITAS_INSTALL_MODE=standard ./install.sh
+
+# Advanced customization with Python installer
 python scripts/hooks/setup_trinitas_hooks.py
 ```
 
-**Note**: The installer automatically copies this documentation file as `CLAUDE.md` to your Claude Code settings directory, avoiding project filename conflicts while ensuring accessibility from within Claude Code.
+**Note**: All installation methods automatically copy this documentation file as `CLAUDE.md` to your Claude Code settings directory, avoiding project filename conflicts while ensuring accessibility from within Claude Code.
 
 ### 2. Basic Usage
 ```bash
