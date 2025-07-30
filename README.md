@@ -130,26 +130,60 @@ claude "Test Trinitas installation"
 # Should trigger trinitas-coordinator with Springfield, Krukai, Vector analysis
 ```
 
-### First Usage Examples
+### 🌊 Natural Language Guide
+
+Trinitas uses intelligent auto-detection - **no commands to memorize**. Simply describe what you need in natural language:
+
+#### 🌱 Springfield (Strategic Planning)
 ```bash
-# Comprehensive analysis (auto-triggers trinitas-coordinator)
-claude "Analyze our authentication system comprehensively"
-
-# Strategic planning (auto-triggers springfield-strategist)
-claude "Help me plan our Q2 development roadmap"
-
-# Technical optimization (auto-triggers krukai-optimizer)
-claude "Review this code for performance bottlenecks"
-
-# Security assessment (auto-triggers vector-auditor)
-claude "Conduct a security audit of our API endpoints"
-
-# Workflow setup (auto-triggers trinitas-workflow)
-claude "Design our CI/CD pipeline with quality gates"
-
-# Quality assurance (auto-triggers trinitas-quality)
-claude "Set up comprehensive testing strategy"
+# Project planning and architecture
+claude "Design our microservices architecture strategy"
+claude "Plan the development roadmap for Q2"
+claude "How should we coordinate between frontend and backend teams?"
+claude "Create documentation structure for the new API"
 ```
+
+#### ⚡ Krukai (Technical Excellence)
+```bash
+# Performance and code quality
+claude "Optimize this database query performance"
+claude "Refactor this code to improve maintainability"
+claude "Review our API for efficiency improvements"
+claude "Implement best practices for our testing framework"
+```
+
+#### 🛡️ Vector (Security & Risk)
+```bash
+# Security analysis and risk management
+claude "Audit our authentication system for vulnerabilities"
+claude "Check this code for security issues"
+claude "Evaluate the risks in our deployment pipeline"
+claude "Review our data handling for compliance"
+```
+
+#### 🎭 Trinity Coordination (Comprehensive Analysis)
+```bash
+# Multi-perspective analysis
+claude "Comprehensively analyze our payment system"
+claude "Evaluate our architecture from all perspectives"
+claude "Perform a complete system review"
+claude "Assess our project holistically"
+```
+
+#### 🔄 Workflow & Quality (Automation)
+```bash
+# Development workflow and quality assurance
+claude "Set up our CI/CD pipeline with proper testing"
+claude "Create a comprehensive quality assurance strategy"
+claude "Design our development workflow automation"
+claude "Implement systematic code review process"
+```
+
+### ✨ Key Benefits
+- **Zero Learning Curve**: No commands to memorize - just natural conversation
+- **Intelligent Context**: Agents understand your intent and project context
+- **Multi-Perspective Analysis**: Get strategic, technical, and security viewpoints
+- **Automatic Coordination**: Agents collaborate seamlessly behind the scenes
 
 ## 🎯 Advanced Features
 

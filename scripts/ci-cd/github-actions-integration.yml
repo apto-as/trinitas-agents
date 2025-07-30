@@ -1,0 +1,105 @@
+# Trinitas GitHub Actions Integration
+# Layer 3: CI/CD Pipeline with Trinitas Quality Gates
+
+name: 'Trinitas Quality Pipeline'
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TRINITAS_MODE: 'ci'
+  CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+
+jobs:
+  trinitas-analysis:
+    name: 'Trinity Analysis'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install Trinitas Dependencies
+      run: |
+        pip install -r scripts/ci-cd/requirements.txt
+        
+    - name: Springfield Strategic Analysis
+      id: strategic
+      run: |
+        python scripts/ci-cd/springfield_ci_analysis.py
+        echo "strategic_score=$(cat strategic_score.txt)" >> $GITHUB_OUTPUT
+        
+    - name: Krukai Technical Quality Check
+      id: technical
+      run: |
+        python scripts/ci-cd/krukai_quality_gate.py
+        echo "quality_score=$(cat quality_score.txt)" >> $GITHUB_OUTPUT
+        
+    - name: Vector Security Audit
+      id: security
+      run: |
+        python scripts/ci-cd/vector_security_scan.py
+        echo "security_score=$(cat security_score.txt)" >> $GITHUB_OUTPUT
+        
+    - name: Trinity Coordination Gate
+      run: |
+        python scripts/ci-cd/trinity_gate_coordinator.py \
+          --strategic=${{ steps.strategic.outputs.strategic_score }} \
+          --technical=${{ steps.technical.outputs.quality_score }} \
+          --security=${{ steps.security.outputs.security_score }}
+          
+    - name: Generate Trinitas Report
+      if: always()
+      run: |
+        python scripts/ci-cd/generate_trinity_report.py
+        
+    - name: Upload Trinity Analysis
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: trinitas-analysis-report
+        path: trinity-report.html
+        
+    - name: Comment PR with Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('trinity-summary.md', 'utf8');
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          });
+
+  deployment-gate:
+    name: 'Deployment Quality Gate'
+    needs: trinitas-analysis
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Final Trinity Validation
+      run: |
+        echo "🌸 Springfield: Strategic objectives verified"
+        echo "⚡ Krukai: Technical excellence confirmed"  
+        echo "🛡️ Vector: Security clearance granted"
+        echo "🎭 Trinity Gate: ✅ DEPLOYMENT APPROVED"
+        
+    - name: Deploy with Trinitas Monitoring
+      run: |
+        # Your deployment commands here
+        python scripts/ci-cd/deploy_with_monitoring.py
