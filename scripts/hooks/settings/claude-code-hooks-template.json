@@ -14,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/pre-execution/dangerous_command_check.py \"$1\" \"$2\"",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/pre-execution/dangerous_command_check.py \"$1\" \"$2\"",
             "timeout": 30
           }
         ]
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/pre-execution/resource_validator.py \"$1\" \"$2\"",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/pre-execution/resource_validator.py \"$1\" \"$2\"",
             "timeout": 15
           }
         ]
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/pre-execution/security_pre_check.py \"$1\" \"$2\"",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/pre-execution/security_pre_check.py \"$1\" \"$2\"",
             "timeout": 20
           }
         ]
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/post-execution/quality_validator.py",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/post-execution/quality_validator.py",
             "timeout": 45
           }
         ]
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/post-execution/security_scanner.py",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/post-execution/security_scanner.py",
             "timeout": 60
           }
         ]
@@ -73,7 +73,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/post-execution/knowledge_persister.py",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/post-execution/knowledge_persister.py",
             "timeout": 30
           }
         ]
@@ -87,7 +87,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/utils/prompt_enhancer.py",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/utils/prompt_enhancer.py",
             "timeout": 15
           }
         ]
@@ -101,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/utils/session_consolidator.py",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/utils/session_consolidator.py",
             "timeout": 30
           }
         ]
@@ -115,7 +115,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/scripts/hooks/utils/trinitas_notifier.py",
+            "command": "python3 $CLAUDE_PROJECT_DIR/hooks/utils/trinitas_notifier.py",
             "timeout": 10
           }
         ]

@@ -120,7 +120,7 @@ select_installation_scope() {
         esac
     fi
     
-    log_success "Selected: ${INSTALL_SCOPE^^} installation"
+    log_success "Selected: $(echo "${INSTALL_SCOPE}" | tr 'a-z' 'A-Z') installation"
 }
 
 # Trinitas mode selection
@@ -158,7 +158,29 @@ select_trinitas_mode() {
         esac
     fi
     
-    log_success "Selected: ${TRINITAS_MODE^^} mode"
+    log_success "Selected: $(echo "${TRINITAS_MODE}" | tr 'a-z' 'A-Z') mode"
+}
+
+# Install hooks scripts
+install_hooks_scripts() {
+    local target_dir=$1
+    local scope_name=$2
+    
+    log_info "Installing Trinitas hooks scripts to ${scope_name}..."
+    
+    # Create hooks directory
+    local hooks_dir="${target_dir}/hooks"
+    mkdir -p "$hooks_dir"
+    
+    # Copy all hook scripts with directory structure
+    cp -r "$TRINITAS_ROOT/scripts/hooks/pre-execution" "$hooks_dir/"
+    cp -r "$TRINITAS_ROOT/scripts/hooks/post-execution" "$hooks_dir/"
+    cp -r "$TRINITAS_ROOT/scripts/hooks/utils" "$hooks_dir/" 2>/dev/null || true
+    
+    # Make all Python scripts executable
+    find "$hooks_dir" -name "*.py" -exec chmod +x {} \;
+    
+    log_success "Hooks scripts installed to: $hooks_dir"
 }
 
 # Install agents
@@ -377,6 +399,12 @@ main_install() {
     if [[ "$INSTALL_SCOPE" == "user" ]] || [[ "$INSTALL_SCOPE" == "both" ]]; then
         echo -e "\n${BLUE}=== USER INSTALLATION ===${NC}"
         
+        # Install hooks scripts first
+        if ! install_hooks_scripts "$HOME/.claude" "user settings"; then
+            log_error "User hooks scripts installation failed"
+            exit 1
+        fi
+        
         # Install agents
         if ! install_agents "$HOME/.claude/agents" "user settings"; then
             log_error "User agent installation failed"
@@ -395,6 +423,12 @@ main_install() {
     
     if [[ "$INSTALL_SCOPE" == "project" ]] || [[ "$INSTALL_SCOPE" == "both" ]]; then
         echo -e "\n${BLUE}=== PROJECT INSTALLATION ===${NC}"
+        
+        # Install hooks scripts first
+        if ! install_hooks_scripts ".claude" "project settings"; then
+            log_error "Project hooks scripts installation failed"
+            exit 1
+        fi
         
         # Install agents
         if ! install_agents ".claude/agents" "project settings"; then
@@ -427,8 +461,8 @@ EOF
     echo -e "${NC}"
     
     echo -e "${CYAN}📋 Installation Summary:${NC}"
-    echo -e "  • Scope: ${INSTALL_SCOPE^^}"
-    echo -e "  • Mode: ${TRINITAS_MODE^^}"
+    echo -e "  • Scope: $(echo "${INSTALL_SCOPE}" | tr 'a-z' 'A-Z')"
+    echo -e "  • Mode: $(echo "${TRINITAS_MODE}" | tr 'a-z' 'A-Z')"
     echo -e "  • Agents: ${#REQUIRED_AGENTS[@]} agents installed"
     echo -e "  • Hooks: Configured for Claude Code"
     echo -e "  • Documentation: Available as CLAUDE.md"
