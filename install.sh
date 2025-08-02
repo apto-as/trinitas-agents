@@ -57,10 +57,9 @@ EOF
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    # Check Python
+    # Python is optional for enhanced features
     if ! command -v python3 &> /dev/null; then
-        log_error "Python 3 is required but not installed"
-        exit 1
+        log_warning "Python 3 not found. Some enhanced features may be unavailable."
     fi
     
     # Check Claude Code CLI
@@ -76,9 +75,9 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check required scripts exist
-    if [[ ! -f "$TRINITAS_ROOT/scripts/hooks/setup_trinitas_hooks.py" ]]; then
-        log_error "Required installation scripts not found"
+    # Check required hooks exist
+    if [[ ! -d "$TRINITAS_ROOT/hooks" ]]; then
+        log_error "Required hooks directory not found"
         exit 1
     fi
     
@@ -168,19 +167,31 @@ install_hooks_scripts() {
     
     log_info "Installing Trinitas hooks scripts to ${scope_name}..."
     
-    # Create hooks directory
-    local hooks_dir="${target_dir}/hooks"
-    mkdir -p "$hooks_dir"
+    # Create trinitas hooks directory
+    local trinitas_hooks_dir="${target_dir}/trinitas/hooks"
+    mkdir -p "$trinitas_hooks_dir"
     
     # Copy all hook scripts with directory structure
-    cp -r "$TRINITAS_ROOT/scripts/hooks/pre-execution" "$hooks_dir/"
-    cp -r "$TRINITAS_ROOT/scripts/hooks/post-execution" "$hooks_dir/"
-    cp -r "$TRINITAS_ROOT/scripts/hooks/utils" "$hooks_dir/" 2>/dev/null || true
+    if [[ -d "$TRINITAS_ROOT/hooks/pre-execution" ]]; then
+        cp -r "$TRINITAS_ROOT/hooks/pre-execution" "$trinitas_hooks_dir/"
+    fi
     
-    # Make all Python scripts executable
-    find "$hooks_dir" -name "*.py" -exec chmod +x {} \;
+    if [[ -d "$TRINITAS_ROOT/hooks/post-execution" ]]; then
+        cp -r "$TRINITAS_ROOT/hooks/post-execution" "$trinitas_hooks_dir/"
+    fi
     
-    log_success "Hooks scripts installed to: $hooks_dir"
+    if [[ -d "$TRINITAS_ROOT/hooks/core" ]]; then
+        cp -r "$TRINITAS_ROOT/hooks/core" "$trinitas_hooks_dir/"
+    fi
+    
+    # Make all scripts executable
+    find "$trinitas_hooks_dir" -name "*.sh" -exec chmod +x {} \;
+    
+    log_success "Hooks scripts installed to: $trinitas_hooks_dir"
+    
+    # Show example configuration
+    log_info "To enable hooks, add the following to your settings.json:"
+    log_info "See: $TRINITAS_ROOT/hooks/examples/settings.json"
 }
 
 # Install agents
@@ -239,67 +250,18 @@ install_agents() {
     log_success "Installed $installed_count agents to: $target_dir"
 }
 
-# Run Python hooks and documentation installer
+# Run Shell-based hooks and documentation installer
 install_hooks_and_docs() {
     local scope=$1
     local mode=$2
     
     log_info "Installing hooks and documentation for ${scope}..."
     
-    # Prepare temporary script to call Python installer with proper arguments
-    local temp_script=$(mktemp)
-    cat > "$temp_script" << EOF
-#!/usr/bin/env python3
-import sys
-import os
-sys.path.insert(0, '$TRINITAS_ROOT/scripts/hooks')
-
-# Import and run installer
-from setup_trinitas_hooks import TrinitasHooksInstaller
-
-installer = TrinitasHooksInstaller()
-
-# Check prerequisites
-prereqs_ok, issues = installer.check_prerequisites()
-if not prereqs_ok:
-    print("Prerequisites not met:")
-    for issue in issues:
-        print(f"   • {issue}")
-    sys.exit(1)
-
-# Load and customize configuration
-template_config = installer.load_template_config()
-if not template_config:
-    sys.exit(1)
-
-customized_config = installer.customize_config_for_mode(template_config, '$mode')
-
-# Make scripts executable
-if not installer.make_scripts_executable():
-    sys.exit(1)
-
-# Install documentation
-if not installer.install_documentation('$scope'):
-    sys.exit(1)
-
-# Install hooks configuration
-if not installer.install_hooks_config(customized_config, '$scope'):
-    sys.exit(1)
-
-# Verify installation
-if not installer.verify_installation():
-    sys.exit(1)
-
-print("Hooks and documentation installation completed successfully!")
-EOF
-    
-    # Execute the temporary script
-    if python3 "$temp_script"; then
-        rm -f "$temp_script"
+    # Use the Shell-based installer
+    if "$TRINITAS_ROOT/scripts/install_hooks_config.sh" "$scope" "$mode"; then
         log_success "Hooks and documentation installed for ${scope}"
         return 0
     else
-        rm -f "$temp_script"
         log_error "Failed to install hooks for ${scope}"
         return 1
     fi
