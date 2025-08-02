@@ -1,0 +1,78 @@
+[project]
+name = "trinitas-hooks"
+version = "3.0.0"
+description = "Trinitas Hooks System - Python Enhancement Layer"
+authors = [
+    {name = "Trinitas-Core", email = "noreply@trinitas-core.dev"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    # Core dependencies - kept minimal
+    "pyyaml>=6.0",
+    "toml>=0.10.2",
+]
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+
+# Enhanced features
+enhanced = [
+    "tree-sitter>=0.20.0",  # For advanced code analysis
+    "gitpython>=3.1.0",     # For git integration
+    "psutil>=5.9.0",        # For system monitoring
+    "rich>=13.0",           # For beautiful terminal output
+]
+
+# Security scanning
+security = [
+    "bandit>=1.7.0",        # Python security linter
+    "safety>=2.3.0",        # Dependency vulnerability scanner
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+# uv-specific configuration
+compile = true  # Compile dependencies for faster startup
+
+[tool.ruff]
+# Linting configuration
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "S",    # bandit
+    "B",    # bugbear
+    "UP",   # pyupgrade
+]
+ignore = ["E501"]  # Line too long (handled by formatter)
+target-version = "py38"
+
+[tool.black]
+# Formatting configuration
+line-length = 100
+target-version = ["py38", "py39", "py310", "py311"]
+
+[tool.mypy]
+# Type checking configuration
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# Testing configuration
+testpaths = ["tests"]
+addopts = "-v --cov=trinitas_hooks --cov-report=term-missing"
