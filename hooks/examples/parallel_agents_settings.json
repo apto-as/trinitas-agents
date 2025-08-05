@@ -1,0 +1,94 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/core/trinitas_protocol_injector.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/core/trinitas_protocol_injector.sh pre_compact"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/python/prepare_parallel_tasks.py",
+            "environment": {
+              "TRINITAS_PARALLEL_ENABLED": "true"
+            }
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/pre-execution/01_safety_check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/pre-execution/02_file_safety_check.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/post-execution/01_code_quality_check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/post-execution/02_test_runner.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/post-execution/capture_subagent_result.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/trinitas/hooks/python/integrate_parallel_results.py",
+            "runCondition": "TRINITAS_INTEGRATION_SESSION"
+          }
+        ]
+      }
+    ]
+  }
+}

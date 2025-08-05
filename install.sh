@@ -81,6 +81,25 @@ check_prerequisites() {
         exit 1
     fi
     
+    # Check for existing installation
+    if [[ -d "$HOME/.claude/agents" ]] || [[ -d ".claude/agents" ]]; then
+        log_warning "Existing Trinitas installation detected!"
+        echo -e "${YELLOW}"
+        echo "⚠️  An existing installation was found."
+        echo "   For upgrading from previous versions, please use:"
+        echo "   ${BLUE}./upgrade.sh${YELLOW}"
+        echo ""
+        echo "   To force a fresh installation, use:"
+        echo "   ${BLUE}./install.sh --force${NC}"
+        echo -e "${NC}"
+        
+        if [[ "${1:-}" != "--force" ]] && [[ "${TRINITAS_FORCE_INSTALL:-}" != "true" ]]; then
+            exit 0
+        fi
+        
+        log_warning "Force installation requested. Proceeding..."
+    fi
+    
     log_success "Prerequisites check passed!"
 }
 
@@ -353,7 +372,7 @@ main_install() {
     
     log_info "Starting Trinitas installation..."
     
-    check_prerequisites
+    check_prerequisites "$@"
     select_installation_scope
     select_trinitas_mode
     
@@ -522,8 +541,8 @@ list_installation() {
 
 # Handle command line arguments
 case "${1:-install}" in
-    "install")
-        main_install
+    "install"|"--force")
+        main_install "$@"
         ;;
     "uninstall")
         uninstall_trinitas
@@ -534,7 +553,7 @@ case "${1:-install}" in
     "help"|"--help")
         echo "Project Trinitas v2.0 - Complete Installation Script"
         echo ""
-        echo "Usage: $0 [install|uninstall|list|help]"
+        echo "Usage: $0 [install|uninstall|list|help] [options]"
         echo ""
         echo "Commands:"
         echo "  install     Install Trinitas agents, hooks, and documentation (default)"
@@ -542,12 +561,17 @@ case "${1:-install}" in
         echo "  list        Show installation status"
         echo "  help        Show this help message"
         echo ""
+        echo "Options:"
+        echo "  --force     Force installation even if existing installation is detected"
+        echo ""
         echo "Environment Variables:"
         echo "  TRINITAS_INSTALL_SCOPE  Set installation scope (user|project|both)"
         echo "  TRINITAS_INSTALL_MODE   Set installation mode (minimal|standard|comprehensive)"
         echo ""
         echo "Examples:"
         echo "  ./install.sh                                    # Interactive installation"
+        echo "  ./install.sh --force                            # Force fresh installation"
+        echo "  ./upgrade.sh                                    # Upgrade existing installation"
         echo "  TRINITAS_INSTALL_SCOPE=user ./install.sh       # Non-interactive user install"
         echo "  TRINITAS_INSTALL_MODE=comprehensive ./install.sh  # Comprehensive mode"
         echo ""

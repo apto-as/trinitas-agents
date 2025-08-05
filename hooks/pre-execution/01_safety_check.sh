@@ -15,14 +15,18 @@ source "$HOOKS_ROOT/core/safety_check.sh"
 # =====================================================
 
 main() {
-    # Vector speaks
+    # Vector speaks (to stderr)
     vector_says "……コマンド実行前の安全性チェックを開始……"
     
     # Validate environment
     if ! validate_claude_environment; then
-        format_hook_result "blocked" "Invalid Claude Code environment" \
-            "Required environment variables are missing or invalid"
-        exit 1
+        cat << EOF
+{
+    "decision": "block",
+    "reason": "Invalid Claude Code environment: Required environment variables are missing or invalid"
+}
+EOF
+        exit 0
     fi
     
     # Perform safety check
@@ -32,20 +36,29 @@ main() {
         
         vector_says "……危険な操作を検出。実行をブロックする……"
         
-        format_hook_result "blocked" "Dangerous operation detected" \
-            "Tool: $tool_name\nArguments: $tool_args\nThis operation has been blocked for safety reasons."
-        
         # Log the blocked operation
         local log_file="$HOME/.claude/logs/blocked_operations.log"
         ensure_directory "$(dirname "$log_file")"
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] BLOCKED: $tool_name - $tool_args" >> "$log_file"
         
-        exit 1
+        # Return JSON response for blocked operation
+        cat << EOF
+{
+    "decision": "block",
+    "reason": "Dangerous operation detected: This operation has been blocked for safety reasons.",
+    "systemMessage": "⛔ Vector: 危険な操作を検出しました。\nTool: $tool_name\nこの操作は安全上の理由でブロックされました。"
+}
+EOF
+        exit 0
     fi
     
-    # Safety check passed
+    # Safety check passed - return approve decision
     springfield_says "安全性チェックをパスしました。実行を続行します。"
-    format_hook_result "success" "Safety check passed"
+    cat << EOF
+{
+    "decision": "approve"
+}
+EOF
     
     exit 0
 }

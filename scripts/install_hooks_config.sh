@@ -128,6 +128,28 @@ EOF
             *)  # standard mode
                 hooks_config=$(cat << 'EOF'
 {
+  "SessionStart": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "~/.claude/trinitas/hooks/core/trinitas_protocol_injector.sh"
+        }
+      ]
+    }
+  ],
+  "PreCompact": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "~/.claude/trinitas/hooks/core/trinitas_protocol_injector.sh pre_compact"
+        }
+      ]
+    }
+  ],
   "PreToolUse": [
     {
       "matcher": "Bash",
@@ -135,6 +157,15 @@ EOF
         {
           "type": "command",
           "command": "~/.claude/trinitas/hooks/pre-execution/01_safety_check.sh"
+        }
+      ]
+    },
+    {
+      "matcher": "Write|Edit|MultiEdit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "~/.claude/trinitas/hooks/pre-execution/02_file_safety_check.sh"
         }
       ]
     }
@@ -146,6 +177,15 @@ EOF
         {
           "type": "command",
           "command": "~/.claude/trinitas/hooks/post-execution/01_code_quality_check.sh"
+        }
+      ]
+    },
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "~/.claude/trinitas/hooks/post-execution/02_test_runner.sh"
         }
       ]
     }
@@ -195,6 +235,12 @@ install_documentation() {
     else
         log_error "TRINITAS-AGENTS.md not found"
         return 1
+    fi
+    
+    # Copy protocol template if it doesn't exist
+    if [[ ! -f "$target_dir/TRINITAS-CORE-PROTOCOL.md" ]] && [[ -f "$TRINITAS_ROOT/templates/TRINITAS-CORE-PROTOCOL.md" ]]; then
+        cp "$TRINITAS_ROOT/templates/TRINITAS-CORE-PROTOCOL.md" "$target_dir/TRINITAS-CORE-PROTOCOL.md"
+        log_success "Protocol template installed to: $target_dir/TRINITAS-CORE-PROTOCOL.md"
     fi
 }
 

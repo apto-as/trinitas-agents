@@ -228,14 +228,11 @@ perform_quality_check() {
     # Summary
     if [[ $total_warnings -eq 0 ]]; then
         springfield_says "素晴らしい！品質チェックをすべてパスしました"
-        format_hook_result "success" "Code quality check passed"
     else
         krukai_says "フン、${total_warnings}個の品質問題を見つけたわ。改善の余地があるわね"
-        format_hook_result "warning" "Code quality check found $total_warnings issues" \
-            "Consider addressing the warnings above to improve code quality"
     fi
     
-    return 0  # Don't fail the operation, just warn
+    return $total_warnings
 }
 
 # =====================================================
@@ -245,8 +242,12 @@ perform_quality_check() {
 main() {
     # Validate environment
     if ! validate_claude_environment; then
-        format_hook_result "error" "Invalid Claude Code environment"
-        return 1
+        cat << EOF
+{
+    "systemMessage": "Invalid Claude Code environment for quality check"
+}
+EOF
+        return 0
     fi
     
     # Check which tool was used
@@ -255,7 +256,8 @@ main() {
     
     # Only process file modification tools
     if [[ ! "$tool_name" =~ ^(Write|Edit|MultiEdit)$ ]]; then
-        return 0  # Not applicable to this tool
+        echo '{}'  # Return empty JSON for non-applicable tools
+        return 0
     fi
     
     # Extract file path
@@ -270,6 +272,7 @@ main() {
     
     if [[ -z "$file_path" ]]; then
         log_warning "Could not extract file path from tool arguments"
+        echo '{}'
         return 0
     fi
     
@@ -278,11 +281,28 @@ main() {
     
     if [[ "$language" == "unknown" ]]; then
         log_debug "Unknown file type, skipping quality check: $file_path"
+        echo '{}'
         return 0
     fi
     
     # Perform quality check
     perform_quality_check "$file_path" "$language"
+    local warnings=$?
+    
+    # Return JSON response
+    if [[ $warnings -eq 0 ]]; then
+        cat << EOF
+{
+    "systemMessage": "✅ Springfield: コード品質チェックをパスしました！素晴らしいコードです。"
+}
+EOF
+    else
+        cat << EOF
+{
+    "systemMessage": "⚠️ Krukai: ${warnings}個の品質問題を検出しました。\n詳細はログを確認してください。完璧を目指しましょう。"
+}
+EOF
+    fi
     
     return 0
 }
