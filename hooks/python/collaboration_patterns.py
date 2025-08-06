@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-collaboration_patterns.py - ペルソナ間の協調パターン定義
-各ペルソナの協調関係と相互作用を管理
+collaboration_patterns.py - Trinity + Support Personas 協調パターン定義
+Core Trinity (意思決定) と Support Personas (専門支援) の協調を管理
 """
 
 import json
@@ -11,6 +11,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
+class PersonaRole(Enum):
+    """ペルソナ役割"""
+    TRINITY_CORE = "trinity_core"        # Core Trinity (意思決定者)
+    SUPPORT_SPECIALIST = "support"       # Support Personas (専門支援)
+
 class CollaborationType(Enum):
     """協調タイプ"""
     SEQUENTIAL = "sequential"      # 順次実行
@@ -18,6 +23,7 @@ class CollaborationType(Enum):
     HIERARCHICAL = "hierarchical"  # 階層的実行
     CONSENSUS = "consensus"        # 合意形成
     SYNTHESIS = "synthesis"        # 統合・融合
+    RESEARCH_ASSIST = "research_assist"  # 研究支援型
 
 @dataclass
 class CollaborationPattern:
@@ -31,9 +37,17 @@ class CollaborationPattern:
     success_criteria: List[str] = field(default_factory=list)
 
 class CollaborationEngine:
-    """ペルソナ協調エンジン"""
+    """Trinity + Support Personas 協調エンジン"""
     
     def __init__(self):
+        # ペルソナ役割定義
+        self.persona_roles = {
+            "springfield": PersonaRole.TRINITY_CORE,
+            "krukai": PersonaRole.TRINITY_CORE,
+            "vector": PersonaRole.TRINITY_CORE,
+            "centaureissi": PersonaRole.SUPPORT_SPECIALIST
+        }
+        
         # 事前定義された協調パターン
         self.patterns = {
             "trinity_consensus": CollaborationPattern(
@@ -53,21 +67,22 @@ class CollaborationEngine:
                 ]
             ),
             
-            "deep_research_flow": CollaborationPattern(
-                pattern_id="deep_research_flow",
-                name="深層研究フロー",
-                type=CollaborationType.SEQUENTIAL,
-                personas=["centaureissi", "springfield", "krukai", "vector"],
-                description="研究から実装までの完全フロー",
+            "research_assisted_decision": CollaborationPattern(
+                pattern_id="research_assisted_decision",
+                name="研究支援型意思決定",
+                type=CollaborationType.RESEARCH_ASSIST,
+                personas=["springfield", "krukai", "vector", "centaureissi"],
+                description="Centaureissiの研究支援を受けたTrinityの意思決定",
                 constraints={
-                    "order": ["centaureissi", "springfield", "krukai", "vector"],
-                    "dependency": True
+                    "decision_makers": ["springfield", "krukai", "vector"],
+                    "support_role": ["centaureissi"],
+                    "final_authority": "trinity_only"
                 },
                 success_criteria=[
-                    "包括的研究完了（Centaureissi）",
-                    "アーキテクチャ設計（Springfield）",
-                    "実装完了（Krukai）",
-                    "セキュリティ検証（Vector）"
+                    "深層研究完了（Centaureissi → Trinity報告）",
+                    "戦略評価（Trinity決定）",
+                    "技術実現性（Trinity確認）",
+                    "セキュリティ検証（Trinity承認）"
                 ]
             ),
             
