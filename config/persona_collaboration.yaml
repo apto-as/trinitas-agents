@@ -1,0 +1,143 @@
+# persona_collaboration.yaml - ペルソナ間の協調設定
+
+# 協調パターン定義
+collaboration_patterns:
+  trinity_consensus:
+    name: "三位一体合意形成"
+    type: "consensus"
+    personas: ["springfield", "krukai", "vector"]
+    description: "三つの視点から総合的に判断"
+    constraints:
+      min_agreement: 2
+      veto_power: ["vector"]  # セキュリティ拒否権
+    success_criteria:
+      - "戦略的妥当性（Springfield）"
+      - "技術的実現可能性（Krukai）"
+      - "セキュリティ確保（Vector）"
+  
+  deep_research_flow:
+    name: "深層研究フロー"
+    type: "sequential"
+    personas: ["centaureissi", "springfield", "krukai", "vector"]
+    description: "研究から実装までの完全フロー"
+    constraints:
+      order: ["centaureissi", "springfield", "krukai", "vector"]
+      dependency: true
+    success_criteria:
+      - "包括的研究完了（Centaureissi）"
+      - "アーキテクチャ設計（Springfield）"
+      - "実装完了（Krukai）"
+      - "セキュリティ検証（Vector）"
+  
+  parallel_analysis:
+    name: "並列分析"
+    type: "parallel"
+    personas: ["springfield", "krukai", "vector", "centaureissi"]
+    description: "全ペルソナが並列で分析"
+    constraints:
+      max_time: 300
+      sync_points: ["start", "mid", "end"]
+    success_criteria:
+      - "全ペルソナの分析完了"
+      - "結果の統合成功"
+  
+  quality_gate:
+    name: "品質ゲート"
+    type: "hierarchical"
+    personas: ["krukai", "vector"]
+    description: "品質とセキュリティの二重チェック"
+    constraints:
+      order: ["krukai", "vector"]
+      fail_fast: true
+    success_criteria:
+      - "コード品質基準達成（Krukai）"
+      - "セキュリティ基準達成（Vector）"
+  
+  knowledge_synthesis:
+    name: "知識統合"
+    type: "synthesis"
+    personas: ["centaureissi", "springfield"]
+    description: "研究結果と戦略的視点の統合"
+    constraints:
+      integration_method: "weighted_merge"
+      weights:
+        centaureissi: 0.6  # 研究重視
+        springfield: 0.4   # 実用性重視
+    success_criteria:
+      - "研究の深さと実用性のバランス"
+      - "実装可能な提案の生成"
+
+# ペルソナ相性マトリックス
+persona_compatibility:
+  springfield:
+    krukai: 0.85      # 良好な協力関係
+    vector: 0.90      # 信頼関係
+    centaureissi: 0.88 # 知的な協調
+  krukai:
+    vector: 0.75      # 時に対立するが補完的
+    centaureissi: 0.80 # 技術的な理解
+  vector:
+    centaureissi: 0.78 # 慎重な協力
+
+# 対立解決ルール
+conflict_resolution:
+  technical:
+    lead_persona: "krukai"
+    weight_distribution:
+      krukai: 0.95
+      centaureissi: 0.88
+      vector: 0.85
+      springfield: 0.70
+  
+  strategic:
+    lead_persona: "springfield"
+    weight_distribution:
+      springfield: 0.90
+      centaureissi: 0.85
+      krukai: 0.75
+      vector: 0.70
+  
+  security:
+    lead_persona: "vector"
+    veto_power: true
+    weight_distribution:
+      vector: 0.98
+      krukai: 0.85
+      springfield: 0.75
+      centaureissi: 0.70
+  
+  complexity:
+    lead_persona: "centaureissi"
+    weight_distribution:
+      centaureissi: 0.90
+      springfield: 0.80
+      krukai: 0.85
+      vector: 0.70
+
+# タスクタイプ別の推奨パターン
+task_recommendations:
+  research:
+    complex: "deep_research_flow"
+    normal: "knowledge_synthesis"
+    urgent: "parallel_analysis"
+  
+  implementation:
+    complex: "trinity_consensus"
+    normal: "parallel_analysis"
+    urgent: "quality_gate"
+  
+  validation:
+    all: "quality_gate"
+  
+  planning:
+    complex: "deep_research_flow"
+    normal: "trinity_consensus"
+    urgent: "parallel_analysis"
+
+# 統合設定
+integration_settings:
+  max_parallel_personas: 4
+  default_timeout: 300  # 5分
+  sync_interval: 30     # 30秒ごとに同期
+  retry_attempts: 3
+  fallback_pattern: "trinity_consensus"
