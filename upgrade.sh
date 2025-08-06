@@ -120,6 +120,61 @@ backup_existing() {
     echo "$backup_dir" > "/tmp/trinitas_last_backup_${scope}"
 }
 
+# Update environment configuration
+update_environment_config() {
+    local scope=$1
+    local target_dir=""
+    
+    if [[ "$scope" == "user" ]]; then
+        target_dir="$HOME/.claude/trinitas"
+    else
+        target_dir=".claude/trinitas"
+    fi
+    
+    local config_dir="$target_dir/config"
+    local env_file="$config_dir/trinitas.env"
+    
+    # Check if environment config exists
+    if [[ ! -f "$env_file" ]]; then
+        log_info "Creating new environment configuration..."
+        mkdir -p "$config_dir"
+        
+        # Copy template if available
+        if [[ -f "$TRINITAS_ROOT/templates/trinitas.env.template" ]]; then
+            cp "$TRINITAS_ROOT/templates/trinitas.env.template" "$env_file"
+            log_success "Created environment configuration from template"
+        else
+            # Create minimal config
+            cat > "$env_file" << 'ENVEOF'
+# Trinitas Environment Configuration
+TRINITAS_HOME="${HOME}/.claude/trinitas"
+TRINITAS_MODE="production"
+TRINITAS_CLAUDE_MODE="relaxed"
+TRINITAS_DEFAULT_PROJECT_DIR="${HOME}/workspace"
+TRINITAS_DEFAULT_TOOL_NAME="Bash"
+TRINITAS_PARALLEL_ENABLED="true"
+TRINITAS_LOG_LEVEL="INFO"
+ENVEOF
+            log_success "Created default environment configuration"
+        fi
+    else
+        log_info "Environment configuration already exists"
+        
+        # Check if we need to add new settings
+        if ! grep -q "TRINITAS_CLAUDE_MODE" "$env_file"; then
+            log_info "Updating environment configuration with new settings..."
+            cat >> "$env_file" << 'ENVEOF'
+
+# Claude Code Integration (added by upgrade)
+TRINITAS_CLAUDE_MODE="relaxed"
+TRINITAS_DEFAULT_PROJECT_DIR="${HOME}/workspace"
+TRINITAS_DEFAULT_TOOL_NAME="Bash"
+ENVEOF
+            log_success "Added new configuration settings"
+        fi
+    fi
+}
+
 # Clean old artifacts
 clean_old_artifacts() {
     local scope=$1
@@ -133,10 +188,11 @@ clean_old_artifacts() {
     
     log_info "Cleaning old artifacts..."
     
-    # Remove old Python hooks
+    # Remove old Python hooks (but keep new trinitas hooks)
     if [[ -d "$base_dir/hooks" ]]; then
-        find "$base_dir/hooks" -name "*.py" -type f -delete 2>/dev/null || true
-        log_info "Removed old Python hooks"
+        # Only remove Python files that are NOT in the trinitas directory
+        find "$base_dir/hooks" -name "*.py" -type f ! -path "*/trinitas/*" -delete 2>/dev/null || true
+        log_info "Removed old Python hooks (preserved Trinitas Python components)"
     fi
     
     # Remove old scripts directory if it contains SuperClaude stuff
@@ -190,17 +246,20 @@ merge_settings() {
   }],
   "PreToolUse": [
     {
-      "matcher": "Bash",
-      "hooks": [{
-        "type": "command",
-        "command": "~/.claude/trinitas/hooks/pre-execution/01_safety_check.sh"
-      }]
-    },
-    {
       "matcher": "Write|Edit|MultiEdit",
       "hooks": [{
         "type": "command",
         "command": "~/.claude/trinitas/hooks/pre-execution/02_file_safety_check.sh"
+      }]
+    },
+    {
+      "matcher": "Task",
+      "hooks": [{
+        "type": "command",
+        "command": "~/.claude/trinitas/hooks/python/prepare_parallel_tasks.py",
+        "environment": {
+          "TRINITAS_PARALLEL_ENABLED": "true"
+        }
       }]
     }
   ],
@@ -211,15 +270,15 @@ merge_settings() {
         "type": "command",
         "command": "~/.claude/trinitas/hooks/post-execution/01_code_quality_check.sh"
       }]
-    },
-    {
-      "matcher": "Bash",
-      "hooks": [{
-        "type": "command",
-        "command": "~/.claude/trinitas/hooks/post-execution/02_test_runner.sh"
-      }]
     }
-  ]
+  ],
+  "SubagentStop": [{
+    "matcher": "Task",
+    "hooks": [{
+      "type": "command",
+      "command": "~/.claude/trinitas/hooks/post-execution/capture_subagent_result.sh"
+    }]
+  }]
 }
 EOF
         )
@@ -261,6 +320,9 @@ upgrade_installation() {
     else
         TRINITAS_INSTALL_SCOPE="project" TRINITAS_FORCE_INSTALL="true" "$TRINITAS_ROOT/install.sh"
     fi
+    
+    # Update environment configuration
+    update_environment_config "$scope"
     
     # Merge settings
     merge_settings "$scope"
@@ -319,7 +381,7 @@ main() {
     echo -e "${YELLOW}"
     echo "⚠️  IMPORTANT: This will upgrade your existing Trinitas installation."
     echo "   - Your current installation will be backed up"
-    echo "   - Old Python-based hooks will be removed"
+    echo "   - Old SuperClaude Python hooks will be removed (Trinitas Python components preserved)"
     echo "   - Settings will be updated to include new hooks"
     echo -e "${NC}"
     

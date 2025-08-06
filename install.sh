@@ -8,7 +8,7 @@ set -e  # Exit on any error
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRINITAS_ROOT="$SCRIPT_DIR"
-REQUIRED_AGENTS=("trinitas-coordinator.md" "springfield-strategist.md" "krukai-optimizer.md" "vector-auditor.md" "trinitas-workflow.md" "trinitas-quality.md")
+REQUIRED_AGENTS=("trinitas-coordinator.md" "springfield-strategist.md" "krukai-optimizer.md" "vector-auditor.md" "trinitas-workflow.md" "trinitas-quality.md" "centaureissi-researcher.md")
 
 # Color codes for output
 RED='\033[0;31m'
@@ -190,6 +190,26 @@ install_hooks_scripts() {
     local trinitas_hooks_dir="${target_dir}/trinitas/hooks"
     mkdir -p "$trinitas_hooks_dir"
     
+    # Create config directory and environment file
+    mkdir -p "${target_dir}/trinitas/config"
+    if [[ -f "templates/trinitas.env.template" ]]; then
+        cp "templates/trinitas.env.template" "${target_dir}/trinitas/config/trinitas.env"
+        log_success "Created environment configuration"
+    else
+        # Create minimal config if template not found
+        cat > "${target_dir}/trinitas/config/trinitas.env" << 'ENVEOF'
+# Trinitas Environment Configuration
+TRINITAS_HOME="${HOME}/.claude/trinitas"
+TRINITAS_MODE="production"
+TRINITAS_CLAUDE_MODE="relaxed"
+TRINITAS_DEFAULT_PROJECT_DIR="${HOME}/workspace"
+TRINITAS_DEFAULT_TOOL_NAME="Bash"
+TRINITAS_PARALLEL_ENABLED="true"
+TRINITAS_LOG_LEVEL="INFO"
+ENVEOF
+        log_success "Created default environment configuration"
+    fi
+    
     # Copy all hook scripts with directory structure
     if [[ -d "$TRINITAS_ROOT/hooks/pre-execution" ]]; then
         cp -r "$TRINITAS_ROOT/hooks/pre-execution" "$trinitas_hooks_dir/"
@@ -203,8 +223,13 @@ install_hooks_scripts() {
         cp -r "$TRINITAS_ROOT/hooks/core" "$trinitas_hooks_dir/"
     fi
     
+    if [[ -d "$TRINITAS_ROOT/hooks/python" ]]; then
+        cp -r "$TRINITAS_ROOT/hooks/python" "$trinitas_hooks_dir/"
+    fi
+    
     # Make all scripts executable
     find "$trinitas_hooks_dir" -name "*.sh" -exec chmod +x {} \;
+    find "$trinitas_hooks_dir" -name "*.py" -exec chmod +x {} \;
     
     log_success "Hooks scripts installed to: $trinitas_hooks_dir"
     
