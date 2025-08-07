@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Trinitas v2.0 Upgrade Script
+# Trinitas v3.0 Practical Upgrade Script
 # 既存のTrinitasインストールを安全にアップグレード
 
 set -e
@@ -41,9 +41,9 @@ show_banner() {
     cat << "EOF"
 🌸 ===================================================== 🌸
    
-   TRINITAS v2.0 - Upgrade Script
+   TRINITAS v3.0 Practical - Upgrade Script
    
-   Safely upgrade from previous versions
+   Upgrade to Trinity + Support Personas System
    
 🌸 ===================================================== 🌸
 EOF

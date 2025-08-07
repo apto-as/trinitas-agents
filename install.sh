@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Project Trinitas v2.0 - Complete Installation Script
+# Project Trinitas v3.0 Practical - Complete Installation Script
 # Comprehensive installation for Claude Code Native Agents, Hooks, and Documentation
 
 set -e  # Exit on any error
@@ -42,11 +42,10 @@ show_banner() {
     cat << "EOF"
 🌸 ===================================================== 🌸
    
-   TRINITAS v2.0 - Trinity Intelligence Installation
+   TRINITAS v3.0 Practical - Trinity + Support Intelligence
    
-   Springfield: Strategic planning and team coordination
-   Krukai: Technical excellence and optimization  
-   Vector: Security analysis and risk management
+   Core Trinity: Springfield, Krukai, Vector (Decision Makers)
+   Support: Centaureissi (Research Specialist)
    
 🌸 ===================================================== 🌸
 EOF
@@ -576,7 +575,7 @@ case "${1:-install}" in
         list_installation
         ;;
     "help"|"--help")
-        echo "Project Trinitas v2.0 - Complete Installation Script"
+        echo "Project Trinitas v3.0 Practical - Complete Installation Script"
         echo ""
         echo "Usage: $0 [install|uninstall|list|help] [options]"
         echo ""
