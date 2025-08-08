@@ -9,7 +9,7 @@ Vector: "……タスクの依存関係を分析し、安全な並列実行を�
 import json
 import os
 import sys
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 import uuid
 import re
