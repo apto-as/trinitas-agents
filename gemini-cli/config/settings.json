@@ -1,5 +1,17 @@
 {
-    "mcp_servers": [
-        "http://localhost:8080"
-    ]
+  "mcpServers": {
+    "trinitas_mcp_server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "./gemini-cli/mcp_server/pyproject.toml",
+        "python",
+        "-m",
+        "server"
+      ],
+      "env": {},
+      "workingDir": "."
+    }
+  }
 }
