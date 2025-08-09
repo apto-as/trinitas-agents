@@ -1,0 +1,166 @@
+#!/bin/bash
+# Trinitas-CLI: A wrapper for gemini-cli to enable persona-based execution.
+
+set -e
+
+# --- Configuration ---
+# Base directory for the Trinitas CLI configuration
+TRINITAS_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PERSONAS_DIR="$TRINITAS_BASE_DIR/personas"
+
+# --- Helper Functions ---
+show_usage() {
+    echo "Trinitas-CLI: A persona-driven wrapper for gemini-cli"
+    echo ""
+    echo "Usage: $0 --persona=<persona_name> [gemini-cli options] "<prompt>""
+    echo ""
+    echo "Options:"
+    echo "  --persona=<name>  Required. The name of the persona to use (e.g., springfield, krukai)."
+    echo "  --list-personas   List all available personas."
+    echo "  --help            Show this help message."
+    echo ""
+    echo "Example:"
+    echo "  $0 --persona=krukai "Refactor this Python code for performance.""
+}
+
+list_personas() {
+    echo "Available Personas:"
+    for f in "$PERSONAS_DIR"/*.md; do
+        if [ -f "$f" ]; then
+            basename "$f" .md
+        fi
+    done
+}
+
+run_single_persona() {
+    # --- Validation ---
+    if [ -z "$PERSONA_NAME" ]; then
+        echo "Error: --persona option is required for single persona mode." >&2
+        show_usage
+        exit 1
+    fi
+
+    PERSONA_FILE="$PERSONAS_DIR/$PERSONA_NAME.md"
+
+    if [ ! -f "$PERSONA_FILE" ]; then
+        echo "Error: Persona file not found: $PERSONA_FILE" >&2
+        echo "Use --list-personas to see available options." >&2
+        exit 1
+    fi
+
+    if [ -z "$PROMPT_ARG" ]; then
+        echo "Error: Prompt message is required." >&2
+        show_usage
+        exit 1
+    fi
+
+    # --- Execution ---
+    echo "Loading [${PERSONA_NAME}] persona..."
+    echo "Persona File: ${PERSONA_FILE}"
+    echo "--------------------------------------------------"
+
+    # Set the environment variable to override the system prompt
+    export GEMINI_SYSTEM_MD="$PERSONA_FILE"
+
+    # Execute gemini-cli with the provided prompt
+    # Note: This assumes 'gemini-cli' is in the system's PATH
+    gemini-cli "$PROMPT_ARG"
+}
+
+run_parallel_analysis() {
+    if [ -z "$PROMPT_ARG" ]; then
+        echo "Error: Prompt message is required for parallel mode." >&2
+        show_usage
+        exit 1
+    fi
+
+    echo "🚀 Initiating Trinity Parallel Analysis..."
+    
+    local personas_to_run=("springfield-strategist" "krukai-optimizer" "vector-auditor")
+    local pids=()
+    local tmp_files=()
+
+    for persona in "${personas_to_run[@]}"; do
+        local persona_file="$PERSONAS_DIR/$persona.md"
+        if [ ! -f "$persona_file" ]; then
+            echo "Warning: Persona file for '$persona' not found. Skipping." >&2
+            continue
+        fi
+        
+        local tmp_file=$(mktemp)
+        tmp_files+=("$tmp_file")
+
+        echo "  -> Launching [$persona]..."
+        
+        # Run gemini-cli in the background for each persona
+        (
+            export GEMINI_SYSTEM_MD="$persona_file"
+            echo "--- Analysis from [$persona] ---" > "$tmp_file"
+            gemini-cli "$PROMPT_ARG" >> "$tmp_file" 2>&1
+        ) &
+        pids+=($!)
+    done
+
+    # Wait for all background jobs to complete
+    echo "Waiting for all analyses to complete..."
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+    done
+    echo "All analyses finished."
+    echo "--------------------------------------------------"
+
+    # Aggregate and display results
+    echo "📊 Integrated Analysis Summary:"
+    for tmp_file in "${tmp_files[@]}"; do
+        cat "$tmp_file"
+        echo ""
+        rm "$tmp_file" # Clean up
+    done
+    echo "✨ Parallel analysis complete."
+}
+
+
+# --- Main Logic ---
+
+# Default values
+PERSONA_NAME=""
+PROMPT_ARG=""
+MODE="single"
+
+# Argument parsing
+if [[ "$1" == "--parallel" ]]; then
+    MODE="parallel"
+    shift # Remove --parallel from processing
+    PROMPT_ARG="$1"
+else
+    # Handle --persona style arguments
+    for arg in "$@"; do
+      case $arg in
+        --persona=*)
+          PERSONA_NAME="${arg#*=}"
+          shift 
+          ;;
+        --list-personas)
+          list_personas
+          exit 0
+          ;;
+        --help)
+          show_usage
+          exit 0
+          ;;
+        *)
+          # The rest is the prompt
+          PROMPT_ARG="$arg"
+          ;;
+      esac
+    done
+fi
+
+
+# --- Mode Dispatch ---
+if [ "$MODE" == "parallel" ]; then
+    run_parallel_analysis
+else
+    run_single_persona
+fi
+

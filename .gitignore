@@ -76,7 +76,13 @@ yarn.lock
 
 # Test artifacts
 .coverage
-.pytest_cache/
+.ruff_cache/
+__pycache__/
+.mypy_cache/
+
+# Trinitas for Gemini-CLI specific
+gemini-cli/mcp_server/__pycache__/
+*.tmp
 .tox/
 coverage.xml
 *.cover
