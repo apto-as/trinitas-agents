@@ -15,11 +15,11 @@ from typing import Dict, List
 
 class TrinityReportGenerator:
     """Trinity統合レポート生成器"""
-    
+
     def __init__(self):
         self.project_root = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
         self.template = self._get_html_template()
-        
+
     def _get_html_template(self) -> str:
         """HTMLレポートテンプレート"""
         return """<!DOCTYPE html>
@@ -209,15 +209,15 @@ class TrinityReportGenerator:
     </div>
 </body>
 </html>"""
-    
+
     def load_trinity_data(self) -> Dict:
         """Trinity評価データの読み込み"""
         try:
-            with open("trinity_gate_result.json", "r", encoding='utf-8') as f:
+            with open("trinity_gate_result.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return self._create_default_data()
-            
+
     def _create_default_data(self) -> Dict:
         """デフォルトデータ作成（ファイルが見つからない場合）"""
         return {
@@ -226,78 +226,80 @@ class TrinityReportGenerator:
                 "individual_scores": {
                     "springfield_strategic": 75.0,
                     "krukai_technical": 75.0,
-                    "vector_security": 75.0
-                }
+                    "vector_security": 75.0,
+                },
             },
             "gate_decision": {
                 "decision": "UNKNOWN",
                 "message": "データが不完全です",
-                "deployable": False
+                "deployable": False,
             },
             "recommendations": ["データの再生成が必要です"],
             "individual_assessments": {
                 "springfield": {"status": "UNKNOWN"},
                 "krukai": {"status": "UNKNOWN"},
-                "vector": {"status": "UNKNOWN"}
-            }
+                "vector": {"status": "UNKNOWN"},
+            },
         }
-        
+
     def generate_detailed_metrics(self, trinity_data: Dict) -> str:
         """詳細メトリクスHTML生成"""
         metrics_html = ""
-        
+
         # Springfield metrics
-        springfield = trinity_data.get("individual_assessments", {}).get("springfield", {})
+        springfield = trinity_data.get("individual_assessments", {}).get(
+            "springfield", {}
+        )
         springfield_scores = springfield.get("scores", {})
-        
+
         for metric, value in springfield_scores.items():
             if metric != "overall_strategic":
                 metrics_html += f"""
                 <div class="metric-card">
                     <div class="metric-value">{value:.1f}</div>
-                    <p>{metric.replace('_', ' ').title()}</p>
+                    <p>{metric.replace("_", " ").title()}</p>
                 </div>
                 """
-                
-        # Krukai metrics  
+
+        # Krukai metrics
         krukai = trinity_data.get("individual_assessments", {}).get("krukai", {})
         krukai_metrics = krukai.get("metrics", {})
-        
+
         for metric, value in krukai_metrics.items():
             if metric != "overall_technical":
                 metrics_html += f"""
                 <div class="metric-card">
                     <div class="metric-value">{value:.1f}</div>
-                    <p>{metric.replace('_', ' ').title()}</p>
+                    <p>{metric.replace("_", " ").title()}</p>
                 </div>
                 """
-                
+
         # Vector metrics
         vector = trinity_data.get("individual_assessments", {}).get("vector", {})
         vector_metrics = vector.get("security_metrics", {})
-        
+
         for metric, value in vector_metrics.items():
             if isinstance(value, (int, float)) and metric != "security_score":
                 metrics_html += f"""
                 <div class="metric-card">
                     <div class="metric-value">{value}</div>
-                    <p>{metric.replace('_', ' ').title()}</p>
+                    <p>{metric.replace("_", " ").title()}</p>
                 </div>
                 """
-                
-        return metrics_html or '<p>詳細メトリクスは利用できません</p>'
-        
+
+        return metrics_html or "<p>詳細メトリクスは利用できません</p>"
+
     def generate_recommendations_html(self, recommendations: List[str]) -> str:
         """推奨事項HTML生成"""
         if not recommendations:
-            return '<p>推奨事項はありません</p>'
-            
+            return "<p>推奨事項はありません</p>"
+
         html = ""
         for rec in recommendations:
             html += f'<div class="recommendation-item">{rec}</div>'
-            
+
         return html
-        
+
     def get_status_class(self, decision: str) -> str:
         """ステータスクラス取得"""
         if decision in ["APPROVE_EXCELLENT"]:
@@ -308,26 +310,26 @@ class TrinityReportGenerator:
             return "status-warning"
         else:
             return "status-danger"
-            
+
     def generate_html_report(self) -> str:
         """HTMLレポート生成"""
         trinity_data = self.load_trinity_data()
-        
+
         # Extract data
         trinity_scores = trinity_data.get("trinity_scores", {})
         gate_decision = trinity_data.get("gate_decision", {})
         recommendations = trinity_data.get("recommendations", [])
         individual_scores = trinity_scores.get("individual_scores", {})
         individual_assessments = trinity_data.get("individual_assessments", {})
-        
+
         # Generate components
         detailed_metrics = self.generate_detailed_metrics(trinity_data)
         recommendations_html = self.generate_recommendations_html(recommendations)
-        
+
         # Project info
         project_name = os.path.basename(self.project_root)
         repository = os.environ.get("GITHUB_REPOSITORY", "Unknown Repository")
-        
+
         # Fill template
         html_content = self.template.format(
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -335,28 +337,33 @@ class TrinityReportGenerator:
             gate_decision=gate_decision.get("decision", "UNKNOWN"),
             gate_message=gate_decision.get("message", "評価中..."),
             status_class=self.get_status_class(gate_decision.get("decision", "")),
-            
             springfield_score=f"{individual_scores.get('springfield_strategic', 0):.1f}",
             krukai_score=f"{individual_scores.get('krukai_technical', 0):.1f}",
             vector_score=f"{individual_scores.get('vector_security', 0):.1f}",
-            
-            springfield_status=individual_assessments.get("springfield", {}).get("status", "UNKNOWN"),
-            krukai_status=individual_assessments.get("krukai", {}).get("status", "UNKNOWN"),
-            vector_status=individual_assessments.get("vector", {}).get("status", "UNKNOWN"),
-            
+            springfield_status=individual_assessments.get("springfield", {}).get(
+                "status", "UNKNOWN"
+            ),
+            krukai_status=individual_assessments.get("krukai", {}).get(
+                "status", "UNKNOWN"
+            ),
+            vector_status=individual_assessments.get("vector", {}).get(
+                "status", "UNKNOWN"
+            ),
             detailed_metrics=detailed_metrics,
             recommendations_html=recommendations_html,
-            
-            overall_assessment=self._get_overall_assessment(trinity_scores.get('final_score', 0)),
-            deployment_readiness="Ready" if gate_decision.get("deployable", False) else "Needs Improvement",
+            overall_assessment=self._get_overall_assessment(
+                trinity_scores.get("final_score", 0)
+            ),
+            deployment_readiness="Ready"
+            if gate_decision.get("deployable", False)
+            else "Needs Improvement",
             next_steps=self._get_next_steps(gate_decision.get("decision", "")),
-            
             project_name=project_name,
-            repository=repository
+            repository=repository,
         )
-        
+
         return html_content
-        
+
     def _get_overall_assessment(self, score: float) -> str:
         """総合評価メッセージ取得"""
         if score >= 90:
@@ -369,7 +376,7 @@ class TrinityReportGenerator:
             return "🟠 Needs Improvement - 改善が必要"
         else:
             return "🔴 Poor - 大幅な改善が必要"
-            
+
     def _get_next_steps(self, decision: str) -> str:
         """次のステップメッセージ取得"""
         steps = {
@@ -377,18 +384,18 @@ class TrinityReportGenerator:
             "APPROVE_GOOD": "現在の品質水準を維持し、継続的改善を実施",
             "APPROVE_WITH_CONDITIONS": "推奨事項を実施してから本格デプロイ",
             "NEEDS_IMPROVEMENT": "重要な問題を修正してから再評価",
-            "REJECT": "品質基準を満たすまで大幅な改善が必要"
+            "REJECT": "品質基準を満たすまで大幅な改善が必要",
         }
         return steps.get(decision, "評価を完了してから判断")
-        
+
     def save_report(self) -> str:
         """レポート保存"""
         html_content = self.generate_html_report()
-        
+
         report_path = "trinity-report.html"
-        with open(report_path, "w", encoding='utf-8') as f:
+        with open(report_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-            
+
         print(f"🎭 Trinity Report: HTMLレポートを生成しました - {report_path}")
         return report_path
 

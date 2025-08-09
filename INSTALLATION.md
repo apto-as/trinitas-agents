@@ -56,6 +56,7 @@ claude --list-agents
 # ~/.claude/agents/vector-auditor.md
 # ~/.claude/agents/trinitas-workflow.md
 # ~/.claude/agents/trinitas-quality.md
+# ~/.claude/agents/centaureissi-researcher.md
 ```
 
 ### Step 2: Utility Scripts (Optional)

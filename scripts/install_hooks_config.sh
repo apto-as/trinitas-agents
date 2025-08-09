@@ -24,13 +24,24 @@ install_hooks_config() {
     local scope="$1"
     local mode="${2:-standard}"
     
-    # Determine target settings file
+    # Dynamic path resolution based on scope
     local settings_file
-    if [[ "$scope" == "user" ]]; then
-        settings_file="$HOME/.claude/settings.json"
-    else
-        settings_file=".claude/settings.json"
-    fi
+    local trinitas_hooks_dir
+    
+    case "$scope" in
+        "user")
+            settings_file="$HOME/.claude/settings.json"
+            trinitas_hooks_dir="$HOME/.claude/trinitas/hooks"
+            ;;
+        "project")
+            settings_file=".claude/settings.json"
+            trinitas_hooks_dir=".claude/trinitas/hooks"
+            ;;
+        *)
+            log_error "Invalid scope '$scope'. Must be 'user' or 'project'"
+            return 1
+            ;;
+    esac
     
     # Check if settings.json exists
     if [[ ! -f "$settings_file" ]]; then
@@ -46,11 +57,30 @@ install_hooks_config() {
 EOF
     fi
     
-    # Backup existing settings
+    # Enhanced backup system with recovery functionality
+    local backup_dir="$(dirname "$settings_file")/.trinitas_backups"
+    local backup_file
+    
     if [[ -f "$settings_file" ]]; then
-        local backup_file="${settings_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$backup_dir"
+        backup_file="$backup_dir/settings_$(date +%Y%m%d_%H%M%S).json"
         cp "$settings_file" "$backup_file"
+        
+        # Create recovery metadata
+        cat > "$backup_dir/recovery_info.json" << EOF
+{
+  "last_backup": "$backup_file",
+  "backup_timestamp": "$(date -Iseconds)",
+  "scope": "$scope",
+  "mode": "$mode"
+}
+EOF
+        
         log_info "Backed up existing settings to: $backup_file"
+        
+        # Cleanup old backups (keep last 10)
+        find "$backup_dir" -name "settings_*.json" -type f | \
+            sort -r | tail -n +11 | xargs -r rm -f
     fi
     
     # Check if jq is available for JSON manipulation
@@ -69,7 +99,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/pre-execution/01_safety_check.sh"
+          "command": "$trinitas_hooks_dir/pre-execution/01_safety_check.sh"
         }
       ]
     }
@@ -87,7 +117,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/pre-execution/01_safety_check.sh"
+          "command": "$trinitas_hooks_dir/pre-execution/01_safety_check.sh"
         }
       ]
     },
@@ -96,7 +126,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/pre-execution/02_file_safety_check.sh"
+          "command": "$trinitas_hooks_dir/pre-execution/02_file_safety_check.sh"
         }
       ]
     }
@@ -107,7 +137,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/post-execution/01_code_quality_check.sh"
+          "command": "$trinitas_hooks_dir/post-execution/01_code_quality_check.sh"
         }
       ]
     },
@@ -116,7 +146,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/post-execution/02_test_runner.sh"
+          "command": "$trinitas_hooks_dir/post-execution/02_test_runner.sh"
         }
       ]
     }
@@ -134,7 +164,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/core/trinitas_protocol_injector.sh"
+          "command": "$trinitas_hooks_dir/core/trinitas_protocol_injector.sh"
         }
       ]
     }
@@ -145,7 +175,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/core/trinitas_protocol_injector.sh pre_compact"
+          "command": "$trinitas_hooks_dir/core/trinitas_protocol_injector.sh pre_compact"
         }
       ]
     }
@@ -156,7 +186,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/pre-execution/01_safety_check.sh"
+          "command": "$trinitas_hooks_dir/pre-execution/01_safety_check.sh"
         }
       ]
     },
@@ -165,7 +195,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/pre-execution/02_file_safety_check.sh"
+          "command": "$trinitas_hooks_dir/pre-execution/02_file_safety_check.sh"
         }
       ]
     }
@@ -176,7 +206,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/post-execution/01_code_quality_check.sh"
+          "command": "$trinitas_hooks_dir/post-execution/01_code_quality_check.sh"
         }
       ]
     },
@@ -185,7 +215,7 @@ EOF
       "hooks": [
         {
           "type": "command",
-          "command": "~/.claude/trinitas/hooks/post-execution/02_test_runner.sh"
+          "command": "$trinitas_hooks_dir/post-execution/02_test_runner.sh"
         }
       ]
     }
@@ -196,17 +226,28 @@ EOF
                 ;;
         esac
         
-        # Update settings.json with hooks configuration
-        echo "$hooks_config" > /tmp/trinitas_hooks_config.json
+        # Expand trinitas_hooks_dir variable in configuration and write to temp file
+        echo "$hooks_config" | sed "s|\$trinitas_hooks_dir|$trinitas_hooks_dir|g" > /tmp/trinitas_hooks_config.json
         
-        # Merge hooks configuration into settings.json
-        jq '.hooks = $hooks[0]' "$settings_file" --slurpfile hooks /tmp/trinitas_hooks_config.json > /tmp/trinitas_settings_updated.json
+        # Merge hooks configuration into settings.json (preserving existing hooks)
+        # Use merge strategy from upgrade.sh to avoid complete overwrite
+        jq '.hooks = (.hooks // {}) * $hooks[0]' "$settings_file" \
+            --slurpfile hooks /tmp/trinitas_hooks_config.json > /tmp/trinitas_settings_updated.json
         
-        # Replace original file
-        mv /tmp/trinitas_settings_updated.json "$settings_file"
+        # Validate generated JSON before replacing original file
+        if jq empty /tmp/trinitas_settings_updated.json >/dev/null 2>&1; then
+            mv /tmp/trinitas_settings_updated.json "$settings_file"
+            log_success "Hooks configuration added to settings.json"
+        else
+            log_error "Generated settings.json is invalid! Attempting recovery..."
+            if [[ -n "$backup_file" && -f "$backup_file" ]]; then
+                recover_from_backup "$settings_file" "$backup_file"
+            fi
+            rm -f /tmp/trinitas_settings_updated.json
+            return 1
+        fi
+        
         rm -f /tmp/trinitas_hooks_config.json
-        
-        log_success "Hooks configuration added to settings.json"
     else
         log_warning "jq not found. Please manually add hooks configuration to settings.json"
         log_info "Example configuration can be found at: $TRINITAS_ROOT/hooks/examples/settings.json"
@@ -259,6 +300,63 @@ main() {
     install_hooks_config "$scope" "$mode"
     
     log_success "Trinitas hooks configuration completed!"
+}
+
+# Recovery function for backup restoration
+recover_from_backup() {
+    local target_file="$1"
+    local backup_file="$2"
+    
+    if [[ -f "$backup_file" ]]; then
+        log_info "Restoring from backup: $backup_file"
+        cp "$backup_file" "$target_file"
+        
+        # Verify restored file
+        if jq empty "$target_file" >/dev/null 2>&1; then
+            log_success "Successfully restored from backup"
+            return 0
+        else
+            log_error "Backup file is also corrupted!"
+            return 1
+        fi
+    else
+        log_error "No backup file found for recovery"
+        return 1
+    fi
+}
+
+# Enhanced backup management
+cleanup_old_backups() {
+    local backup_dir="$1"
+    local keep_count="${2:-10}"
+    
+    if [[ -d "$backup_dir" ]]; then
+        local backup_count
+        backup_count=$(find "$backup_dir" -name "settings_*.json" -type f | wc -l)
+        
+        if [[ $backup_count -gt $keep_count ]]; then
+            log_info "Cleaning up old backups (keeping last $keep_count)..."
+            find "$backup_dir" -name "settings_*.json" -type f | \
+                sort -r | tail -n +$((keep_count + 1)) | xargs -r rm -f
+        fi
+    fi
+}
+
+# Backup validation and listing
+list_available_backups() {
+    local backup_dir="$1"
+    
+    if [[ -d "$backup_dir" ]]; then
+        echo "Available backups:"
+        find "$backup_dir" -name "settings_*.json" -type f | \
+            sort -r | head -5 | while read -r backup; do
+            local timestamp
+            timestamp=$(basename "$backup" .json | sed 's/settings_//')
+            echo "  - $backup ($(date -d "${timestamp//_/ }" 2>/dev/null || echo "$timestamp"))"
+        done
+    else
+        echo "No backup directory found at: $backup_dir"
+    fi
 }
 
 # Run if executed directly

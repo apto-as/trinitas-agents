@@ -1,0 +1,159 @@
+# Trinitas Configuration
+# This file should be copied to ~/.claude/agents/trinitas/config.yaml during installation
+# Springfield: "設定ファイルも、丁寧に管理いたしましょうね"
+
+# =====================================================
+# Core Configuration
+# =====================================================
+core:
+  # Trinitas installation directory
+  home: "${HOME}/.claude/trinitas"
+  
+  # Project mode - development or production
+  mode: "production"
+  
+  # Enable development mode features (bypasses some checks)
+  dev_mode: false
+  
+  # Trinity personas enabled
+  trinity_enabled: true
+
+# =====================================================
+# Claude Code Integration
+# =====================================================
+claude:
+  # Claude Code compatibility mode
+  # - strict: Requires Claude environment variables (production)
+  # - relaxed: Uses defaults when Claude env not available (development/maintenance)
+  mode: "relaxed"
+  
+  # Default values for Claude environment when not provided
+  # These are used as fallbacks during development/maintenance
+  defaults:
+    project_dir: "${HOME}/workspace"
+    tool_name: "Bash"
+
+# =====================================================
+# Parallel Agents Configuration
+# =====================================================
+parallel:
+  # Enable parallel agent execution
+  enabled: true
+  
+  # Results directory for parallel execution
+  results_dir: "${HOME}/.claude/trinitas/parallel_results"
+  
+  # Maximum number of parallel agents
+  max_agents: 6
+  
+  # Parallel execution timeout (seconds)
+  timeout: 300
+
+# =====================================================
+# Security Configuration
+# =====================================================
+security:
+  # Safety level: LOW, MEDIUM, HIGH
+  safety_level: "HIGH"
+  
+  # Enable backup before modifications
+  backup_enabled: true
+  
+  # Backup directory
+  backup_dir: "${HOME}/.claude/trinitas/backups"
+  
+  # Allowed commands (used by safety checks)
+  allowed_commands:
+    - ls
+    - cat
+    - grep
+    - find
+    - git
+    - npm
+    - yarn
+    - python
+    - node
+
+# =====================================================
+# Logging Configuration
+# =====================================================
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  
+  # Log directory
+  directory: "${HOME}/.claude/trinitas/logs"
+  
+  # Log retention days
+  retention_days: 30
+
+# =====================================================
+# Hook Configuration
+# =====================================================
+hooks:
+  # Enable specific hooks
+  enable_safety_check: true
+  enable_quality_check: true
+  enable_protocol_injection: true
+  
+  # Hook timeout (seconds)
+  timeout: 30
+  
+  # Hook directories
+  pre_execution_dir: "${HOME}/.claude/trinitas/hooks/pre-execution"
+  post_execution_dir: "${HOME}/.claude/trinitas/hooks/post-execution"
+
+# =====================================================
+# Agent Configuration
+# =====================================================
+agents:
+  # List of core agents (always installed)
+  core:
+    - trinitas-coordinator
+    - springfield-strategist
+    - krukai-optimizer
+    - vector-auditor
+    - trinitas-workflow
+    - trinitas-quality
+    - centaureissi-researcher
+  
+  # Agent directory
+  directory: "${HOME}/.claude/agents"
+  
+  # Enable agent auto-detection from natural language
+  auto_detect: true
+
+# =====================================================
+# Persona Collaboration Configuration
+# =====================================================
+collaboration:
+  # Enable persona collaboration patterns
+  enabled: true
+  
+  # Collaboration configuration file
+  config_file: "${HOME}/.claude/trinitas/config/persona_collaboration.yaml"
+  
+  # Default collaboration mode
+  default_mode: "trinity_consensus"
+  
+  # Consensus requirements
+  consensus:
+    min_agreement: 2
+    veto_power:
+      - vector  # Security veto
+
+# =====================================================
+# Performance Configuration
+# =====================================================
+performance:
+  # Cache settings
+  cache:
+    enabled: true
+    directory: "${HOME}/.claude/trinitas/cache"
+    ttl: 3600  # seconds
+  
+  # Resource limits
+  limits:
+    max_memory_mb: 512
+    max_cpu_percent: 50
+    max_file_size_mb: 100

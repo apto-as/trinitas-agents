@@ -7,10 +7,10 @@ Advanced code analysis and security features powered by Python.
 
 __version__ = "3.0.0"
 
-from .core import TrinitasHook, HookResult, HookStatus
 from .analyzers import CodeAnalyzer, SecurityAnalyzer
-from .quality import QualityChecker
+from .core import HookResult, HookStatus, TrinitasHook
 from .logging import TrinitasLogger
+from .quality import QualityChecker
 
 __all__ = [
     "TrinitasHook",

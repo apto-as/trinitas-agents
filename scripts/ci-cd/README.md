@@ -23,7 +23,9 @@ cp scripts/ci-cd/github-actions-integration.yml .github/workflows/trinitas-quali
 2. **Secretsの設定**
 ```bash
 # GitHub リポジトリのSecretsに以下を設定（必要に応じて）
-TRINITAS_MODE=ci
+# YAML設定ファイルを使用するため、個別の環境変数は最小限に
+TRINITAS_CONFIG_PATH=~/.claude/agents/trinitas/config.yaml
+TRINITAS_MODE=ci  # CI環境用のオーバーライド
 ```
 
 3. **プッシュまたはPR作成**
@@ -186,7 +188,8 @@ report_path = generator.save_report()
 # プロジェクトルート指定
 export CLAUDE_PROJECT_DIR="/path/to/project"
 
-# CI/CDモード指定
+# CI/CDモード指定（config.yamlの値をオーバーライド）
+export TRINITAS_CONFIG_PATH="~/.claude/agents/trinitas/config.yaml"
 export TRINITAS_MODE="ci"
 
 # GitHub情報（Actions環境で自動設定）

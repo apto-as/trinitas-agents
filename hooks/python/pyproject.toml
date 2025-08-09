@@ -46,7 +46,10 @@ build-backend = "hatchling.build"
 compile = true  # Compile dependencies for faster startup
 
 [tool.ruff]
-# Linting configuration
+target-version = "py38"
+
+[tool.ruff.lint]
+# Linting configuration - migrated to new structure
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
@@ -58,7 +61,6 @@ select = [
     "UP",   # pyupgrade
 ]
 ignore = ["E501"]  # Line too long (handled by formatter)
-target-version = "py38"
 
 [tool.black]
 # Formatting configuration

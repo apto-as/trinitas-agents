@@ -132,30 +132,72 @@ update_environment_config() {
     fi
     
     local config_dir="$target_dir/config"
-    local env_file="$config_dir/trinitas.env"
+    local config_file="$HOME/.claude/agents/trinitas/config.yaml"
     
-    # Check if environment config exists
-    if [[ ! -f "$env_file" ]]; then
-        log_info "Creating new environment configuration..."
+    # Check if configuration exists
+    if [[ ! -f "$config_file" ]]; then
+        log_info "Creating new YAML configuration..."
+        mkdir -p "$HOME/.claude/agents/trinitas"
         mkdir -p "$config_dir"
         
         # Copy template if available
-        if [[ -f "$TRINITAS_ROOT/templates/trinitas.env.template" ]]; then
-            cp "$TRINITAS_ROOT/templates/trinitas.env.template" "$env_file"
-            log_success "Created environment configuration from template"
+        if [[ -f "$TRINITAS_ROOT/templates/config.yaml.template" ]]; then
+            cp "$TRINITAS_ROOT/templates/config.yaml.template" "$config_file"
+            log_success "Created configuration from template"
         else
             # Create minimal config
-            cat > "$env_file" << 'ENVEOF'
-# Trinitas Environment Configuration
-TRINITAS_HOME="${HOME}/.claude/trinitas"
-TRINITAS_MODE="production"
-TRINITAS_CLAUDE_MODE="relaxed"
-TRINITAS_DEFAULT_PROJECT_DIR="${HOME}/workspace"
-TRINITAS_DEFAULT_TOOL_NAME="Bash"
-TRINITAS_PARALLEL_ENABLED="true"
-TRINITAS_LOG_LEVEL="INFO"
-ENVEOF
-            log_success "Created default environment configuration"
+            cat > "$config_file" << 'YAMLEOF'
+# Trinitas Configuration
+core:
+  home: "${HOME}/.claude/trinitas"
+  mode: "production"
+  trinity_enabled: true
+
+claude:
+  mode: "relaxed"
+  defaults:
+    project_dir: "${HOME}/workspace"
+    tool_name: "Bash"
+
+parallel:
+  enabled: true
+  max_agents: 6
+  timeout: 300
+
+security:
+  safety_level: "HIGH"
+  backup_enabled: true
+
+logging:
+  level: "INFO"
+  directory: "${HOME}/.claude/trinitas/logs"
+
+hooks:
+  enable_safety_check: true
+  enable_quality_check: true
+  enable_protocol_injection: true
+
+agents:
+  core:
+    - trinitas-coordinator
+    - springfield-strategist
+    - krukai-optimizer
+    - vector-auditor
+    - trinitas-workflow
+    - trinitas-quality
+    - centaureissi-researcher
+
+collaboration:
+  enabled: true
+  config_file: "${HOME}/.claude/trinitas/config/persona_collaboration.yaml"
+YAMLEOF
+            log_success "Created default YAML configuration"
+        fi
+        
+        # Copy persona collaboration configuration
+        if [[ -f "$TRINITAS_ROOT/config/persona_collaboration.yaml" ]]; then
+            cp "$TRINITAS_ROOT/config/persona_collaboration.yaml" "$config_dir/persona_collaboration.yaml"
+            log_success "Created persona collaboration configuration"
         fi
     else
         log_info "Environment configuration already exists"

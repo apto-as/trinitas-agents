@@ -189,24 +189,67 @@ install_hooks_scripts() {
     local trinitas_hooks_dir="${target_dir}/trinitas/hooks"
     mkdir -p "$trinitas_hooks_dir"
     
-    # Create config directory and environment file
+    # Create config directory and configuration files
     mkdir -p "${target_dir}/trinitas/config"
-    if [[ -f "templates/trinitas.env.template" ]]; then
-        cp "templates/trinitas.env.template" "${target_dir}/trinitas/config/trinitas.env"
-        log_success "Created environment configuration"
+    
+    # Copy main configuration file
+    if [[ -f "templates/config.yaml.template" ]]; then
+        cp "templates/config.yaml.template" "${target_dir}/agents/trinitas/config.yaml"
+        log_success "Created main configuration (config.yaml)"
     else
         # Create minimal config if template not found
-        cat > "${target_dir}/trinitas/config/trinitas.env" << 'ENVEOF'
-# Trinitas Environment Configuration
-TRINITAS_HOME="${HOME}/.claude/trinitas"
-TRINITAS_MODE="production"
-TRINITAS_CLAUDE_MODE="relaxed"
-TRINITAS_DEFAULT_PROJECT_DIR="${HOME}/workspace"
-TRINITAS_DEFAULT_TOOL_NAME="Bash"
-TRINITAS_PARALLEL_ENABLED="true"
-TRINITAS_LOG_LEVEL="INFO"
-ENVEOF
-        log_success "Created default environment configuration"
+        cat > "${target_dir}/agents/trinitas/config.yaml" << 'YAMLEOF'
+# Trinitas Configuration
+core:
+  home: "${HOME}/.claude/trinitas"
+  mode: "production"
+  trinity_enabled: true
+
+claude:
+  mode: "relaxed"
+  defaults:
+    project_dir: "${HOME}/workspace"
+    tool_name: "Bash"
+
+parallel:
+  enabled: true
+  max_agents: 6
+  timeout: 300
+
+security:
+  safety_level: "HIGH"
+  backup_enabled: true
+
+logging:
+  level: "INFO"
+  directory: "${HOME}/.claude/trinitas/logs"
+
+hooks:
+  enable_safety_check: true
+  enable_quality_check: true
+  enable_protocol_injection: true
+
+agents:
+  core:
+    - trinitas-coordinator
+    - springfield-strategist
+    - krukai-optimizer
+    - vector-auditor
+    - trinitas-workflow
+    - trinitas-quality
+    - centaureissi-researcher
+
+collaboration:
+  enabled: true
+  config_file: "${HOME}/.claude/trinitas/config/persona_collaboration.yaml"
+YAMLEOF
+        log_success "Created default configuration (config.yaml)"
+    fi
+    
+    # Copy persona collaboration configuration
+    if [[ -f "config/persona_collaboration.yaml" ]]; then
+        cp "config/persona_collaboration.yaml" "${target_dir}/trinitas/config/persona_collaboration.yaml"
+        log_success "Created persona collaboration configuration"
     fi
     
     # Copy all hook scripts with directory structure

@@ -10,7 +10,8 @@ on:
     branches: [ main ]
 
 env:
-  TRINITAS_MODE: 'ci'
+  TRINITAS_CONFIG_PATH: '~/.claude/agents/trinitas/config.yaml'
+  TRINITAS_MODE: 'ci'  # Override config.yaml for CI environment
   CLAUDE_PROJECT_DIR: ${{ github.workspace }}
 
 jobs:
