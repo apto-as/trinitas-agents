@@ -17,10 +17,19 @@ Project Trinitas v2.0 is a revolutionary AI development support system built on 
 - **Krukai** ⚡: Technical excellence, performance optimization, quality assurance
 - **Vector** 🛡️: Security analysis, risk management, comprehensive validation
 
+### 📡 NEW: Trinity Hybrid MCP Server
+- **Universal Compatibility**: Works with Claude Code, Gemini, Qwen, and any MCP-compatible client
+- **Auto-Detection**: Automatically identifies client and optimizes behavior
+- **Native Integration**: Leverages Claude Code's native agents when available
+- **Fallback Support**: Provides simulated Trinity behavior for other clients
+
 ### 🚀 Instant Installation
 ```bash
-# One command installation - everything you need
-curl -s https://install.trinitas.dev | bash
+# Standard installation - Claude Code Native Agents
+./install.sh
+
+# Installation with MCP Server support (NEW!)
+./install.sh --with-mcp
 
 # Alternative: Manual installation
 cp agents/*.md ~/.claude/agents/
@@ -94,12 +103,18 @@ cd trinitas-agents
 
 # Complete installation with one command
 ./install.sh
+
+# Installation with MCP Server support (NEW!)
+./install.sh --with-mcp
 ```
 
 **Alternative Methods:**
 ```bash
 # Non-interactive installation for automation
 TRINITAS_INSTALL_SCOPE=project TRINITAS_INSTALL_MODE=standard ./install.sh
+
+# With MCP Server
+TRINITAS_INSTALL_SCOPE=project TRINITAS_INSTALL_MODE=standard ./install.sh --with-mcp
 
 # Python installer for advanced customization  
 python scripts/hooks/setup_trinitas_hooks.py
@@ -114,6 +129,12 @@ trinitas-agents/
 │   ├── springfield-strategist.md
 │   ├── krukai-optimizer.md
 │   └── vector-auditor.md
+├── trinitas-mcp-server/   # NEW: Trinity Hybrid MCP Server
+│   ├── hybrid-mcp/        # Hybrid implementation
+│   │   ├── core/          # Core server with auto-detection
+│   │   ├── claude/        # Claude-optimized implementation
+│   │   └── universal/     # Universal fallback implementation
+│   └── requirements.txt   # MCP dependencies
 └── scripts/hooks/         # Automation and quality assurance
     ├── setup_trinitas_hooks.py    # Installation wizard
     ├── pre-execution/             # Safety and validation hooks
@@ -184,6 +205,54 @@ claude "Implement systematic code review process"
 - **Intelligent Context**: Agents understand your intent and project context
 - **Multi-Perspective Analysis**: Get strategic, technical, and security viewpoints
 - **Automatic Coordination**: Agents collaborate seamlessly behind the scenes
+
+## 📡 Trinity Hybrid MCP Server
+
+### Overview
+The Trinity Hybrid MCP Server extends Trinitas capabilities to **any MCP-compatible client**, not just Claude Code. It provides intelligent client detection and adaptive behavior optimization.
+
+### Features
+- **🔍 Auto-Detection**: Identifies Claude Code, Gemini, Qwen, or other clients automatically
+- **⚡ Native Optimization**: Uses Claude Code's native agents when available
+- **🔄 Universal Fallback**: Simulates Trinity behavior for non-Claude clients
+- **📊 Quality Enforcement**: Maintains 100% quality standards across all clients
+- **🎭 Persona Injection**: Provides Trinity personalities in MD/XML format
+
+### Starting the MCP Server
+```bash
+# After installation with --with-mcp flag
+cd trinitas-mcp-server/hybrid-mcp
+fastmcp run core.hybrid_server:app
+
+# The server will be available for MCP clients to connect
+```
+
+### Client Compatibility
+| Client | Support Level | Features |
+|--------|--------------|----------|
+| Claude Code | ✅ Full Native | Task agents, TodoWrite, parallel execution |
+| Gemini CLI | ✅ Universal | Simulated parallel, internal state management |
+| Qwen Coder | ✅ Universal | Markdown personas, sequential processing |
+| Other MCP | ✅ Basic | Core Trinity functionality |
+
+### Architecture
+```yaml
+hybrid_server:
+  detection_layer:
+    - Client identification via headers
+    - Capability assessment
+    - Path selection (native vs universal)
+  
+  claude_path:
+    - Native agent invocation (Task tool)
+    - TodoWrite state management
+    - True parallel execution
+  
+  universal_path:
+    - Markdown/XML persona injection
+    - Simulated parallel with delays
+    - Internal state management
+```
 
 ## 🎯 Advanced Features
 
@@ -288,6 +357,7 @@ personalities:
 - ✅ One-command installation
 
 ### Phase 2: Enhancement (🔄 In Progress) 
+- ✅ Trinity Hybrid MCP Server (Complete!)
 - 🔄 Advanced automation pipeline
 - 🔄 Comprehensive quality gates
 - 🔄 Team collaboration features
