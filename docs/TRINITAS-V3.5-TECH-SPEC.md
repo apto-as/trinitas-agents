@@ -85,19 +85,37 @@ class DelegationRules:
     Intelligent task routing based on task characteristics
     """
     
+    # Cognitive Complexity Levels
+    COMPLEXITY_LEVELS = {
+        "mechanical": 1,      # Simple, repetitive tasks
+        "analytical": 2,      # Pattern matching, basic analysis
+        "reasoning": 3,       # Logic and inference required
+        "creative": 4,        # Novel solutions needed
+        "strategic": 5,       # Long-term implications
+    }
+    
     DELEGATION_MATRIX = {
-        # Task Type -> (Preferred Executor, Confidence)
-        "file_search": ("local", 0.95),
-        "large_file_analysis": ("local", 0.98),
-        "code_generation": ("claude", 0.70),
-        "test_generation": ("local", 0.90),
-        "test_execution": ("local", 0.99),
-        "documentation": ("local", 0.85),
-        "security_audit": ("claude", 0.99),
-        "architecture_design": ("claude", 0.95),
-        "performance_optimization": ("hybrid", 0.80),
-        "bug_investigation": ("hybrid", 0.75),
-        "refactoring": ("hybrid", 0.70),
+        # Task Type -> (Preferred Executor, Confidence, Complexity)
+        "file_search": ("local", 0.95, "mechanical"),
+        "large_file_analysis": ("local", 0.98, "mechanical"),
+        "test_execution": ("local", 0.99, "mechanical"),
+        "documentation_generation": ("local", 0.85, "analytical"),
+        "test_generation": ("local", 0.90, "analytical"),
+        "pattern_detection": ("local", 0.85, "analytical"),
+        
+        # High complexity - Always Claude
+        "code_generation": ("claude", 0.95, "creative"),
+        "algorithm_design": ("claude", 0.99, "creative"),
+        "security_audit": ("claude", 0.99, "reasoning"),
+        "architecture_design": ("claude", 0.95, "strategic"),
+        "api_design": ("claude", 0.90, "strategic"),
+        "complex_debugging": ("claude", 0.95, "reasoning"),
+        
+        # Hybrid - Requires both
+        "performance_optimization": ("hybrid", 0.80, "reasoning"),
+        "bug_investigation": ("hybrid", 0.75, "analytical"),
+        "refactoring": ("hybrid", 0.70, "creative"),
+        "system_analysis": ("hybrid", 0.85, "strategic"),
     }
     
     CONTEXT_THRESHOLDS = {
@@ -110,53 +128,134 @@ class DelegationRules:
     def decide_delegation(self, task: Task, context_state: ContextState) -> str:
         """
         Returns: 'claude', 'local', or 'hybrid'
+        Based on cognitive complexity AND computational load
         """
-        # Check explicit rules
+        # Step 1: Get task characteristics
         if task.type in self.DELEGATION_MATRIX:
-            executor, confidence = self.DELEGATION_MATRIX[task.type]
-            if confidence > 0.90:
-                return executor
+            executor, confidence, complexity = self.DELEGATION_MATRIX[task.type]
+            complexity_level = self.COMPLEXITY_LEVELS[complexity]
+        else:
+            complexity_level = self.estimate_complexity(task)
+            executor = None
+            confidence = 0.5
         
-        # Check context pressure
-        if context_state.claude_usage > self.CONTEXT_THRESHOLDS["claude_warning"]:
-            if task.is_critical:
-                return "hybrid"  # Split task
-            else:
-                return "local"   # Full delegation
+        # Step 2: High complexity ALWAYS goes to Claude (even if heavy)
+        if complexity_level >= 4:  # Creative or Strategic
+            if task.estimated_tokens > 100000:
+                # Too heavy even for Claude - decompose
+                return "hybrid"
+            return "claude"
         
-        # Check task characteristics
-        if task.estimated_tokens > 50000:
-            return "local"  # Large tasks to local
+        # Step 3: Check if task has explicit routing with high confidence
+        if executor and confidence > 0.90:
+            return executor
         
-        if task.requires_tools and len(task.required_tools) > 3:
-            return "local"  # Tool-heavy tasks to local
+        # Step 4: Context-aware routing for medium complexity
+        if complexity_level == 3:  # Reasoning required
+            if context_state.claude_usage > self.CONTEXT_THRESHOLDS["claude_warning"]:
+                # Try hybrid to preserve Claude context
+                return "hybrid"
+            return "claude"  # Prefer Claude for reasoning
         
-        return "claude"  # Default to Claude
+        # Step 5: Low complexity tasks - consider computational load
+        if complexity_level <= 2:  # Mechanical or Analytical
+            if task.estimated_tokens > 20000:
+                return "local"  # Heavy but simple - perfect for local
+            
+            if task.requires_tools and len(task.required_tools) > 3:
+                return "local"  # Tool-heavy but simple
+            
+            if context_state.claude_usage > self.CONTEXT_THRESHOLDS["claude_warning"]:
+                return "local"  # Save Claude's context
+        
+        # Step 6: Default based on context pressure
+        if context_state.claude_usage > self.CONTEXT_THRESHOLDS["claude_critical"]:
+            return "local" if complexity_level <= 2 else "hybrid"
+        
+        return "claude"  # When in doubt, use Claude
+    
+    def estimate_complexity(self, task: Task) -> int:
+        """
+        Estimate cognitive complexity of unknown tasks
+        """
+        indicators = {
+            "creative": ["design", "create", "invent", "novel", "innovative"],
+            "strategic": ["architecture", "plan", "roadmap", "long-term", "system"],
+            "reasoning": ["why", "debug", "analyze", "understand", "explain"],
+            "analytical": ["find", "search", "compare", "measure", "count"],
+            "mechanical": ["copy", "move", "run", "execute", "list"],
+        }
+        
+        task_text = task.description.lower()
+        
+        for level, keywords in indicators.items():
+            if any(keyword in task_text for keyword in keywords):
+                return self.COMPLEXITY_LEVELS[level]
+        
+        # Check for decision-making indicators
+        if any(word in task_text for word in ["decide", "choose", "evaluate", "judge"]):
+            return 3  # Reasoning
+        
+        # Default to analytical for unknown tasks
+        return 2
 ```
 
-### 2.2 Task Decomposition
+### 2.2 Cognitive-Aware Task Decomposition
 ```python
-# delegation/decomposer.py
-class TaskDecomposer:
+# delegation/cognitive_decomposer.py
+class CognitiveTaskDecomposer:
     """
-    Breaks complex tasks into delegatable subtasks
+    Breaks complex tasks based on cognitive requirements, not just size
     """
     
     def decompose(self, task: Task) -> TaskDecomposition:
         """
-        Intelligently decompose tasks for hybrid execution
+        Separate mechanical work from cognitive work
         """
-        if task.type == "performance_optimization":
+        complexity = self.assess_cognitive_load(task)
+        
+        if complexity.is_heavy_but_simple:
+            # Large dataset processing, file operations, etc.
             return TaskDecomposition(
                 local_tasks=[
-                    Task("profile_code", "Run performance profiling"),
-                    Task("identify_bottlenecks", "Find slow operations"),
-                    Task("generate_benchmarks", "Create performance tests"),
+                    Task("data_gathering", "Collect all relevant data"),
+                    Task("initial_processing", "Process and format data"),
+                    Task("pattern_extraction", "Find obvious patterns"),
                 ],
                 claude_tasks=[
-                    Task("analyze_architecture", "Review system design"),
-                    Task("propose_optimizations", "Design improvements"),
-                    Task("validate_changes", "Ensure correctness"),
+                    Task("interpret_results", "Understand implications"),
+                    Task("make_decision", "Decide on action"),
+                ],
+                synthesis_required=True
+            )
+        
+        elif complexity.is_heavy_and_complex:
+            # Complex analysis of large systems
+            return TaskDecomposition(
+                local_tasks=[
+                    Task("mechanical_analysis", "Gather metrics and facts"),
+                    Task("data_preparation", "Organize information"),
+                ],
+                claude_tasks=[
+                    Task("deep_analysis", "Understand complex relationships"),
+                    Task("creative_solution", "Design novel approach"),
+                    Task("strategic_planning", "Plan implementation"),
+                ],
+                synthesis_required=True,
+                claude_priority=True  # Claude leads this work
+            )
+        
+        elif task.type == "performance_optimization":
+            return TaskDecomposition(
+                local_tasks=[
+                    Task("profile_code", "Run performance profiling", complexity="mechanical"),
+                    Task("collect_metrics", "Gather performance data", complexity="mechanical"),
+                    Task("identify_hotspots", "Find slow operations", complexity="analytical"),
+                ],
+                claude_tasks=[
+                    Task("analyze_architecture", "Understand design implications", complexity="strategic"),
+                    Task("design_optimizations", "Create optimization strategy", complexity="creative"),
+                    Task("validate_approach", "Ensure correctness", complexity="reasoning"),
                 ],
                 synthesis_required=True
             )

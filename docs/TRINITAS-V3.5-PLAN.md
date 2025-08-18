@@ -43,6 +43,43 @@ graph TB
     TD --> MCP
 ```
 
+### 🧠 Cognitive Complexity Routing
+
+```mermaid
+graph LR
+    Task[Task Input] --> CA[Complexity Analyzer]
+    
+    CA --> HC{Heavy + Complex?}
+    CA --> HS{Heavy + Simple?}
+    CA --> LC{Light + Complex?}
+    CA --> LS{Light + Simple?}
+    
+    HC -->|YES| Claude1[Claude Leads]
+    HC -->|Support| Local1[Local Assists]
+    
+    HS -->|YES| Local2[Local Executes]
+    HS -->|Review| Claude2[Claude Reviews]
+    
+    LC -->|YES| Claude3[Claude Only]
+    
+    LS -->|YES| Local3[Local Only]
+    
+    style Claude1 fill:#f9f,stroke:#333,stroke-width:4px
+    style Claude3 fill:#f9f,stroke:#333,stroke-width:2px
+    style Local2 fill:#9ff,stroke:#333,stroke-width:4px
+    style Local3 fill:#9ff,stroke:#333,stroke-width:2px
+```
+
+### 📊 Task Routing Decision Matrix
+
+| Task Characteristics | Computational Load | Cognitive Complexity | Primary Executor | Secondary Role |
+|---------------------|-------------------|---------------------|------------------|----------------|
+| **Heavy + Complex** | High (>50k tokens) | Creative/Strategic | **Claude** | Local: Data gathering |
+| **Heavy + Simple** | High (>50k tokens) | Mechanical/Analytical | **Local** | Claude: Review only |
+| **Light + Complex** | Low (<20k tokens) | Creative/Strategic | **Claude** | None |
+| **Light + Simple** | Low (<20k tokens) | Mechanical/Analytical | **Local** | None |
+| **Variable Complexity** | Medium | Reasoning | **Hybrid** | Both collaborate |
+
 ## 📋 Development Roadmap
 
 ### Phase 1: Foundation (Week 1-2)
