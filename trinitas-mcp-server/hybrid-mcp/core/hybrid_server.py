@@ -40,11 +40,15 @@ class ClientDetector:
         user_agent = headers.get('user-agent', '').lower()
         
         # Detection logic
-        if 'claude' in user_agent or context.client_info.name == "claude-code":
+        client_name = ""
+        if hasattr(context, 'client_info') and hasattr(context.client_info, 'name'):
+            client_name = str(context.client_info.name).lower()
+        
+        if 'claude' in user_agent or client_name == "claude-code":
             return ClientType.CLAUDE
-        elif 'gemini' in user_agent:
+        elif 'gemini' in user_agent or 'gemini' in client_name:
             return ClientType.GEMINI
-        elif 'qwen' in user_agent:
+        elif 'qwen' in user_agent or 'qwen' in client_name:
             return ClientType.QWEN
             
         # Check for Claude-specific features
@@ -98,10 +102,45 @@ class ClientDetector:
 # Hybrid MCP Server
 # =====================================
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def initialize_hybrid_server(app):
+    """Initialize hybrid server components"""
+    logger.info("Trinity Hybrid MCP Server starting...")
+    
+    # Load persona definitions
+    personas_path = Path(__file__).parent.parent.parent / "personas"
+    if personas_path.exists():
+        logger.info(f"Loading personas from {personas_path}")
+    
+    # Initialize implementations
+    global claude_impl, universal_impl
+    
+    # Load implementations (lazy loading)
+    try:
+        from claude.claude_optimized import initialize_claude
+        claude_impl = initialize_claude  # Store the function, not the result
+        logger.info("Claude optimizations available")
+    except ImportError:
+        logger.warning("Claude optimizations not available")
+    
+    try:
+        from universal.universal_impl import initialize_universal
+        universal_impl = initialize_universal  # Store the function, not the result
+        logger.info("Universal implementation available")
+    except ImportError:
+        logger.warning("Universal implementation not available")
+    
+    logger.info("Trinity Hybrid MCP Server ready")
+    yield  # Server is running
+    logger.info("Trinity Hybrid MCP Server shutting down")
+
 app = FastMCP(
     name="trinity-hybrid-mcp",
     version="1.0.0",
-    description="Hybrid Trinity MCP Server - Optimized for Claude, Compatible with All"
+    instructions="Hybrid Trinity MCP Server - Optimized for Claude, Compatible with All",
+    lifespan=initialize_hybrid_server
 )
 
 # Global instances (will be initialized on startup)
@@ -265,7 +304,7 @@ async def get_capabilities(client_type: str) -> Dict[str, Any]:
         return client_detector.get_capabilities(ClientType.UNKNOWN)
 
 
-@app.resource("hybrid/status")
+@app.resource("trinity://hybrid/status")
 async def get_hybrid_status() -> Dict[str, Any]:
     """Get current hybrid server status"""
     return {
@@ -285,8 +324,7 @@ async def get_hybrid_status() -> Dict[str, Any]:
 # Middleware for Quality Enforcement
 # =====================================
 
-@app.middleware
-async def trinity_quality_gate(request, handler, context: Context):
+async def trinity_quality_gate(request, handler):
     """
     Universal quality gate - 100% standard for all clients
     """
@@ -311,55 +349,22 @@ async def trinity_quality_gate(request, handler, context: Context):
     return response
 
 
-@app.middleware
-async def client_detection_middleware(request, handler, context: Context):
+async def client_detection_middleware(request, handler):
     """
     Detect and log client for every request
     """
-    client_type = client_detector.detect(context)
-    logger.info(f"Request from {client_type.value} client")
-    
-    # Add client info to request
-    request.detected_client = client_type
-    request.client_capabilities = client_detector.get_capabilities(client_type)
+    # Note: Context not available in FastMCP v2 middleware
+    # Client detection happens in tool handlers via context parameter
+    logger.info(f"Processing request")
     
     return await handler(request)
 
+# Add middleware to app after definition
+app.add_middleware(trinity_quality_gate)
+app.add_middleware(client_detection_middleware)
 
-# =====================================
-# Startup Configuration
-# =====================================
 
-@app.startup
-async def initialize_hybrid_server():
-    """Initialize hybrid server components"""
-    logger.info("Trinity Hybrid MCP Server starting...")
-    
-    # Load persona definitions
-    personas_path = Path(__file__).parent.parent.parent / "personas"
-    if personas_path.exists():
-        logger.info(f"Loading personas from {personas_path}")
-    
-    # Initialize implementations
-    global claude_impl, universal_impl
-    
-    try:
-        from ..claude.claude_optimized import ClaudeOptimizedImpl
-        claude_impl = ClaudeOptimizedImpl()
-        logger.info("Claude-optimized implementation loaded")
-    except ImportError:
-        logger.warning("Claude implementation not available")
-    
-    try:
-        from ..universal.universal_impl import UniversalImpl
-        universal_impl = UniversalImpl()
-        logger.info("Universal implementation loaded")
-    except ImportError:
-        logger.error("Universal implementation required but not found")
-        raise
-    
-    logger.info("Trinity Hybrid MCP Server initialized successfully")
-    logger.info("Auto-detection enabled, graceful degradation active")
+# Note: Initialization is handled in the lifespan function above
 
 
 # =====================================

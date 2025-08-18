@@ -1,0 +1,1 @@
+# Trinity Hybrid MCP Server

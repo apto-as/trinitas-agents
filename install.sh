@@ -2,6 +2,7 @@
 
 # Project Trinitas v3.0 Practical - Complete Installation Script
 # Comprehensive installation for Claude Code Native Agents, Hooks, and Documentation
+# Now with optional MCP Server integration
 
 set -e  # Exit on any error
 
@@ -9,6 +10,31 @@ set -e  # Exit on any error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRINITAS_ROOT="$SCRIPT_DIR"
 REQUIRED_AGENTS=("trinitas-coordinator.md" "springfield-strategist.md" "krukai-optimizer.md" "vector-auditor.md" "trinitas-workflow.md" "trinitas-quality.md" "centaureissi-researcher.md")
+
+# Parse command line arguments
+INSTALL_MCP=false
+FORCE_INSTALL=false
+SHOW_HELP=false
+
+for arg in "$@"; do
+    case $arg in
+        --with-mcp)
+            INSTALL_MCP=true
+            shift
+            ;;
+        --force)
+            FORCE_INSTALL=true
+            shift
+            ;;
+        --help|-h)
+            SHOW_HELP=true
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
 # Color codes for output
 RED='\033[0;31m'
@@ -36,6 +62,23 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Display help message
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --with-mcp    Install Trinity Hybrid MCP Server alongside main components"
+    echo "  --force       Force installation even if existing installation is detected"
+    echo "  --help, -h    Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  # Standard installation"
+    echo "  $0 --with-mcp       # Install with MCP server support"
+    echo "  $0 --force          # Force reinstallation"
+    echo ""
+    exit 0
+}
+
 # Display Trinitas banner
 show_banner() {
     echo -e "${PURPLE}"
@@ -50,6 +93,11 @@ show_banner() {
 🌸 ===================================================== 🌸
 EOF
     echo -e "${NC}"
+    
+    if [[ "$INSTALL_MCP" == "true" ]]; then
+        echo -e "${CYAN}📡 MCP Server Installation: ${GREEN}ENABLED${NC}"
+        echo ""
+    fi
 }
 
 # Check prerequisites
@@ -353,6 +401,78 @@ install_hooks_and_docs() {
     fi
 }
 
+# Install MCP Server component
+install_mcp_server() {
+    log_info "Installing Trinity Hybrid MCP Server..."
+    
+    local MCP_DIR="$TRINITAS_ROOT/trinitas-mcp-server"
+    
+    # Check if MCP server directory exists
+    if [[ ! -d "$MCP_DIR" ]]; then
+        log_error "MCP Server directory not found at $MCP_DIR"
+        return 1
+    fi
+    
+    # Check Python version for MCP
+    if ! command -v python3 &> /dev/null; then
+        log_error "Python 3 is required for MCP Server installation"
+        return 1
+    fi
+    
+    local python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    local required_version="3.10"
+    
+    if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
+        log_error "Python $python_version is too old. MCP Server requires Python >= $required_version"
+        return 1
+    fi
+    
+    # Navigate to MCP directory
+    cd "$MCP_DIR"
+    
+    # Install MCP dependencies
+    log_info "  Installing MCP dependencies..."
+    if pip install -q -r requirements.txt; then
+        log_success "  ✓ MCP dependencies installed"
+    else
+        log_error "  Failed to install MCP dependencies"
+        cd "$TRINITAS_ROOT"
+        return 1
+    fi
+    
+    # Install MCP Server package
+    log_info "  Installing trinitas-mcp-server package..."
+    if pip install -q -e .; then
+        log_success "  ✓ trinitas-mcp-server package installed"
+    else
+        log_error "  Failed to install trinitas-mcp-server package"
+        cd "$TRINITAS_ROOT"
+        return 1
+    fi
+    
+    # Run MCP tests
+    log_info "  Running MCP server tests..."
+    cd hybrid-mcp
+    if python -m pytest tests/test_hybrid.py -q --tb=short; then
+        log_success "  ✓ MCP server tests passed"
+    else
+        log_warning "  ⚠ Some MCP tests failed, but installation completed"
+    fi
+    
+    # Return to root directory
+    cd "$TRINITAS_ROOT"
+    
+    # Verify MCP installation
+    if python3 -c "from core.hybrid_server import app; print(f'MCP Server v{app.version} ready')" 2>/dev/null; then
+        log_success "✓ Trinity Hybrid MCP Server installed successfully"
+        echo -e "${CYAN}    To start MCP server: ${NC}cd trinitas-mcp-server/hybrid-mcp && fastmcp run core.hybrid_server:app"
+        return 0
+    else
+        log_warning "⚠ MCP Server installed but verification failed"
+        return 1
+    fi
+}
+
 # Verify complete installation
 verify_installation() {
     local scope=$1
@@ -494,6 +614,19 @@ main_install() {
         verify_installation "project"
     fi
     
+    # Install MCP Server if requested
+    if [[ "$INSTALL_MCP" == "true" ]]; then
+        echo -e "\n${BLUE}=== MCP SERVER INSTALLATION ===${NC}"
+        if install_mcp_server; then
+            MCP_INSTALLED="YES"
+        else
+            MCP_INSTALLED="FAILED"
+            log_warning "MCP Server installation failed, but main installation completed"
+        fi
+    else
+        MCP_INSTALLED="NO"
+    fi
+    
     # Generate test command
     TEST_COMMAND=$(generate_test_command "$TRINITAS_MODE")
     
@@ -514,6 +647,11 @@ EOF
     echo -e "  • Agents: ${#REQUIRED_AGENTS[@]} agents installed"
     echo -e "  • Hooks: Configured for Claude Code"
     echo -e "  • Documentation: Available as CLAUDE.md"
+    if [[ "$MCP_INSTALLED" == "YES" ]]; then
+        echo -e "  • ${GREEN}MCP Server: Installed successfully${NC}"
+    elif [[ "$MCP_INSTALLED" == "FAILED" ]]; then
+        echo -e "  • ${YELLOW}MCP Server: Installation failed${NC}"
+    fi
     
     echo -e "\n${BLUE}🧪 Test Your Installation:${NC}"
     echo -e "Run this command to test Trinitas:"
@@ -606,9 +744,14 @@ list_installation() {
     fi
 }
 
+# Check for help flag first
+if [[ "$SHOW_HELP" == "true" ]]; then
+    show_help
+fi
+
 # Handle command line arguments
 case "${1:-install}" in
-    "install"|"--force")
+    "install"|"--force"|"--with-mcp")
         main_install "$@"
         ;;
     "uninstall")

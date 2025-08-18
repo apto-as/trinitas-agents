@@ -2,12 +2,33 @@
 
 # Trinitas v3.0 Practical Upgrade Script
 # 既存のTrinitasインストールを安全にアップグレード
+# Now with optional MCP Server upgrade
 
 set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRINITAS_ROOT="$SCRIPT_DIR"
+
+# Parse command line arguments
+UPGRADE_MCP=false
+SHOW_HELP=false
+
+for arg in "$@"; do
+    case $arg in
+        --with-mcp)
+            UPGRADE_MCP=true
+            shift
+            ;;
+        --help|-h)
+            SHOW_HELP=true
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
 # Color codes
 RED='\033[0;31m'
@@ -35,6 +56,21 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Display help message
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --with-mcp    Upgrade Trinity Hybrid MCP Server alongside main components"
+    echo "  --help, -h    Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  # Standard upgrade"
+    echo "  $0 --with-mcp       # Upgrade with MCP server"
+    echo ""
+    exit 0
+}
+
 # Banner
 show_banner() {
     echo -e "${PURPLE}"
@@ -48,6 +84,11 @@ show_banner() {
 🌸 ===================================================== 🌸
 EOF
     echo -e "${NC}"
+    
+    if [[ "$UPGRADE_MCP" == "true" ]]; then
+        echo -e "${CYAN}📡 MCP Server Upgrade: ${GREEN}ENABLED${NC}"
+        echo ""
+    fi
 }
 
 # Check existing installation
@@ -343,6 +384,87 @@ EOF
     fi
 }
 
+# Upgrade MCP Server component
+upgrade_mcp_server() {
+    log_info "Upgrading Trinity Hybrid MCP Server..."
+    
+    local MCP_DIR="$TRINITAS_ROOT/trinitas-mcp-server"
+    
+    # Check if MCP server directory exists
+    if [[ ! -d "$MCP_DIR" ]]; then
+        log_error "MCP Server directory not found at $MCP_DIR"
+        return 1
+    fi
+    
+    # Check if MCP is already installed
+    if ! pip show trinitas-mcp-server &>/dev/null; then
+        log_info "MCP Server not installed. Installing fresh..."
+        cd "$MCP_DIR"
+        if ./install.sh; then
+            log_success "✓ MCP Server installed successfully"
+            cd "$TRINITAS_ROOT"
+            return 0
+        else
+            log_error "MCP Server installation failed"
+            cd "$TRINITAS_ROOT"
+            return 1
+        fi
+    fi
+    
+    # Backup current MCP installation
+    log_info "  Creating MCP backup..."
+    local backup_dir="$MCP_DIR/backup_$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$backup_dir"
+    cp -r "$MCP_DIR/hybrid-mcp/core" "$backup_dir/" 2>/dev/null || true
+    
+    # Pull latest changes if in git
+    if [[ -d "$TRINITAS_ROOT/.git" ]]; then
+        log_info "  Fetching latest MCP updates..."
+        git fetch origin 2>/dev/null || true
+    fi
+    
+    # Navigate to MCP directory
+    cd "$MCP_DIR"
+    
+    # Update dependencies
+    log_info "  Updating MCP dependencies..."
+    if pip install -q --upgrade -r requirements.txt; then
+        log_success "  ✓ MCP dependencies updated"
+    else
+        log_error "  Failed to update MCP dependencies"
+        cd "$TRINITAS_ROOT"
+        return 1
+    fi
+    
+    # Reinstall package
+    log_info "  Reinstalling trinitas-mcp-server package..."
+    if pip install -q --upgrade -e .; then
+        log_success "  ✓ trinitas-mcp-server package upgraded"
+    else
+        log_error "  Failed to upgrade trinitas-mcp-server package"
+        cd "$TRINITAS_ROOT"
+        return 1
+    fi
+    
+    # Run tests
+    log_info "  Running MCP server tests..."
+    cd hybrid-mcp
+    if python -m pytest tests/test_hybrid.py -q --tb=short; then
+        log_success "  ✓ MCP server tests passed"
+    else
+        log_warning "  ⚠ Some MCP tests failed"
+    fi
+    
+    # Return to root directory
+    cd "$TRINITAS_ROOT"
+    
+    # Verify upgrade
+    local new_version=$(python3 -c "from core.hybrid_server import app; print(app.version)" 2>/dev/null || echo "unknown")
+    log_success "✓ Trinity Hybrid MCP Server upgraded (v$new_version)"
+    
+    return 0
+}
+
 # Main upgrade process
 upgrade_installation() {
     local scope=$1
@@ -409,6 +531,11 @@ rollback() {
 
 # Main
 main() {
+    # Check for help flag first
+    if [[ "$SHOW_HELP" == "true" ]]; then
+        show_help
+    fi
+    
     show_banner
     
     # Check prerequisites
@@ -465,6 +592,19 @@ main() {
             ;;
     esac
     
+    # Upgrade MCP Server if requested
+    if [[ "$UPGRADE_MCP" == "true" ]]; then
+        echo -e "\n${BLUE}=== MCP SERVER UPGRADE ===${NC}"
+        if upgrade_mcp_server; then
+            MCP_UPGRADED="YES"
+        else
+            MCP_UPGRADED="FAILED"
+            log_warning "MCP Server upgrade failed, but main upgrade completed"
+        fi
+    else
+        MCP_UPGRADED="NO"
+    fi
+    
     # Success message
     echo -e "\n${GREEN}"
     cat << "EOF"
@@ -481,6 +621,11 @@ EOF
     echo "  • New hooks system installed" 
     echo "  • Protocol injection configured"
     echo "  • Settings updated"
+    if [[ "$MCP_UPGRADED" == "YES" ]]; then
+        echo -e "  • ${GREEN}MCP Server: Upgraded successfully${NC}"
+    elif [[ "$MCP_UPGRADED" == "FAILED" ]]; then
+        echo -e "  • ${YELLOW}MCP Server: Upgrade failed${NC}"
+    fi
     
     echo -e "\n${CYAN}🔄 Rollback Option:${NC}"
     echo "If you encounter issues, you can rollback:"

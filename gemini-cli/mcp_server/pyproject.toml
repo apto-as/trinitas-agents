@@ -1,9 +1,0 @@
-[project]
-name = "trinitas-mcp-server"
-version = "1.1.0"
-description = "MCP Server for Trinitas Agents logic, communicating over STDIO."
-
-# This server currently has no external dependencies.
-# If libraries like pydantic, requests, etc., were added,
-# they would be listed here.
-# dependencies = []
