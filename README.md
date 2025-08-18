@@ -168,21 +168,104 @@ fastmcp run core.hybrid_server:app
 ```
 
 **For Gemini CLI:**
-```bash
-# Set environment variable
-export MCP_SERVER_URL="http://localhost:5000"
 
-# Connect Gemini to Trinity MCP
-gemini-cli --mcp-server trinity
+First, ensure gemini-cli is configured for MCP:
+```bash
+# Install gemini-cli if not already installed
+pip install gemini-cli
+
+# Configure MCP settings in ~/.gemini/config.yaml
+cat > ~/.gemini/config.yaml << 'EOF'
+mcp:
+  enabled: true
+  servers:
+    trinity:
+      type: "stdio"
+      command: "python"
+      args: 
+        - "-m"
+        - "fastmcp"
+        - "run"
+        - "/path/to/trinitas-mcp-server/hybrid-mcp/core/hybrid_server.py"
+      env:
+        TRINITY_MODE: "universal"
+        CLIENT_TYPE: "gemini"
+EOF
+
+# Or use environment variable approach
+export GEMINI_MCP_SERVERS='{"trinity": {"command": "fastmcp", "args": ["run", "/path/to/trinitas-mcp-server/hybrid-mcp/core/hybrid_server.py"]}}'
+
+# Start gemini-cli with MCP support
+gemini-cli --enable-mcp
 ```
 
 **For Qwen Coder:**
-```yaml
-# qwen-config.yaml
-mcp_servers:
-  trinity:
-    url: "http://localhost:5000"
-    client_id: "qwen-coder"
+
+Configure Qwen Coder's MCP integration:
+```bash
+# Method 1: Configuration file (~/.qwen/mcp_config.json)
+cat > ~/.qwen/mcp_config.json << 'EOF'
+{
+  "version": "1.0",
+  "servers": {
+    "trinity": {
+      "protocol": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "fastmcp",
+        "run",
+        "/path/to/trinitas-mcp-server/hybrid-mcp/core/hybrid_server.py"
+      ],
+      "environment": {
+        "TRINITY_MODE": "universal",
+        "CLIENT_TYPE": "qwen"
+      }
+    }
+  }
+}
+EOF
+
+# Method 2: Using qwen-code settings
+# Open Qwen Code settings (Ctrl/Cmd + ,)
+# Add to settings.json:
+{
+  "qwen.mcp.servers": {
+    "trinity": {
+      "enabled": true,
+      "command": "cd /path/to/trinitas-mcp-server/hybrid-mcp && fastmcp run core.hybrid_server:app",
+      "shell": true
+    }
+  }
+}
+
+# Method 3: Command line activation
+qwen-code --mcp-server="trinity:stdio:python -m fastmcp run /path/to/trinitas-mcp-server/hybrid-mcp/core/hybrid_server.py"
+```
+
+**For Other MCP-Compatible Clients:**
+
+Generic MCP configuration that works with most clients:
+```json
+{
+  "mcp_servers": [
+    {
+      "name": "trinity",
+      "protocol": "stdio",
+      "command": "python3",
+      "args": [
+        "-m",
+        "fastmcp",
+        "run",
+        "/absolute/path/to/trinitas-mcp-server/hybrid-mcp/core/hybrid_server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/trinitas-mcp-server/hybrid-mcp",
+        "TRINITY_MODE": "universal"
+      }
+    }
+  ]
+}
 ```
 
 ### MCP Server Usage Examples
@@ -232,6 +315,85 @@ mcp_servers:
 # All clients: Enforces 100% quality or raises error
 ```
 
+### Real-World Usage Scenarios
+
+#### Using Trinity MCP with Gemini CLI
+```bash
+# Start gemini-cli with Trinity MCP enabled
+gemini-cli --enable-mcp
+
+# In the Gemini session:
+> @trinity set persona springfield
+> I need to design a microservices architecture for our e-commerce platform
+# Trinity responds with Springfield's strategic perspective
+
+> @trinity parallel analyze our payment system
+# Triggers parallel analysis from all three perspectives
+
+> @trinity quality check deployment readiness
+# Enforces 100% quality standards before deployment
+```
+
+#### Using Trinity MCP with Qwen Coder
+```bash
+# Start Qwen Code with Trinity MCP
+qwen-code --mcp-server trinity
+
+# In Qwen Code editor:
+# Type: /trinity springfield
+# Result: Activates Springfield persona for strategic guidance
+
+# Type: /trinity analyze security
+# Result: Vector performs comprehensive security audit
+
+# Type: /trinity optimize performance
+# Result: Krukai analyzes and optimizes code performance
+```
+
+#### Programmatic Usage (Any Language)
+```python
+# Python example using MCP client
+from mcp_client import MCPClient
+
+client = MCPClient("trinity")
+
+# Set persona for session
+response = client.call_tool("set_trinity_persona", {
+    "persona": "krukai",
+    "context": "Need to optimize our database queries"
+})
+
+# Get parallel analysis
+analysis = client.call_tool("trinity_parallel_analysis", {
+    "task": "Review authentication system",
+    "perspectives": ["strategic", "technical", "security"]
+})
+
+print(analysis["consensus"])  # Unified recommendation
+```
+
+```javascript
+// JavaScript/TypeScript example
+import { MCPClient } from '@modelcontextprotocol/sdk';
+
+const trinity = new MCPClient({
+  server: 'trinity',
+  protocol: 'stdio'
+});
+
+// Activate Vector for security audit
+await trinity.callTool('set_trinity_persona', {
+  persona: 'vector',
+  context: 'Audit our API endpoints'
+});
+
+// Execute with quality gates
+const result = await trinity.callTool('execute_with_quality', {
+  action: 'deploy_new_feature',
+  quality_requirement: 1.0
+});
+```
+
 ### MCP Tools Available
 
 | Tool | Description | Claude Optimized | Universal Support |
@@ -241,6 +403,54 @@ mcp_servers:
 | `execute_with_quality` | Quality-enforced execution | ✅ TodoWrite | ✅ Internal state |
 | `manage_project_state` | State management | ✅ TodoWrite | ✅ Internal DB |
 | `get_trinity_status` | System status | ✅ Full details | ✅ Basic info |
+
+### MCP Server Troubleshooting
+
+#### Connection Issues
+```bash
+# Verify MCP server is running
+ps aux | grep fastmcp
+
+# Test direct connection
+curl -X POST http://localhost:5000/mcp/v1/tools \
+  -H "Content-Type: application/json" \
+  -d '{"tool": "get_trinity_status"}'
+
+# Check logs
+tail -f ~/.claude/trinitas/logs/mcp-server.log
+```
+
+#### Client-Specific Issues
+
+**Gemini CLI not detecting MCP:**
+```bash
+# Ensure MCP module is installed
+pip install gemini-cli[mcp]
+
+# Verify configuration
+gemini-cli --debug --list-mcp-servers
+
+# Test with explicit server
+gemini-cli --mcp-server trinity --debug "Test Trinity connection"
+```
+
+**Qwen Coder connection errors:**
+```bash
+# Check Qwen MCP support
+qwen-code --version  # Should be >= 2.0.0
+
+# Validate configuration
+qwen-code --validate-mcp-config
+
+# Test standalone
+python -m fastmcp test /path/to/trinitas-mcp-server/hybrid-mcp/core/hybrid_server.py
+```
+
+#### Common Fixes
+1. **Permission denied**: Ensure scripts are executable: `chmod +x /path/to/scripts`
+2. **Module not found**: Add to PYTHONPATH: `export PYTHONPATH="/path/to/trinitas-mcp-server/hybrid-mcp:$PYTHONPATH"`
+3. **Port already in use**: Change port in configuration or kill existing process
+4. **Client not detected**: Set `CLIENT_TYPE` environment variable explicitly
 
 ## 📁 Complete Project Structure
 
