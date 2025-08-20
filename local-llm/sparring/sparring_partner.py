@@ -11,7 +11,11 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from enum import Enum
 
-from ..connector.llm_connector import (
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from connector.llm_connector import (
     LocalLLMConnector,
     TaskRequest,
     TaskResponse,

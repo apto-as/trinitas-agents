@@ -8,8 +8,12 @@ set -e
 echo "🧪 Trinitas v3.5 - Running Tests"
 echo "================================"
 
-# Set Python path
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+# Get the project root directory
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+# Set Python path to include the project root
+export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH}"
+echo "Python Path: ${PYTHONPATH}"
 
 # Check if pytest is installed
 if ! command -v pytest &> /dev/null; then

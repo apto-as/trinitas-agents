@@ -8,14 +8,18 @@ import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 
-from ..delegation.delegation_engine import (
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from delegation.delegation_engine import (
     CognitiveDelegationEngine,
     DelegationDecision,
     ContextState,
     TaskDecomposition,
     ExecutorType
 )
-from ..connector.llm_connector import (
+from connector.llm_connector import (
     TaskRequest,
     TaskResponse,
     CognitiveComplexity

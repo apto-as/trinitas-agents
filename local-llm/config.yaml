@@ -9,7 +9,7 @@ local_llm:
     
   # Connection Settings
   connection:
-    endpoint: "http://localhost:8080/v1"
+    endpoint: "http://192.168.99.102:1234/v1"
     api_key: "${LOCAL_LLM_API_KEY}"  # Set via environment variable
     timeout: 30
     max_retries: 3

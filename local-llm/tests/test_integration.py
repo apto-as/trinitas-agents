@@ -13,24 +13,28 @@ from typing import Dict, List, Any
 from unittest.mock import Mock, AsyncMock, patch
 
 # Import all v3.5 components
-from ..connector.llm_connector import (
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from connector.llm_connector import (
     LocalLLMConnector,
     TaskRequest,
     TaskResponse,
     CognitiveComplexity,
     ExecutorType
 )
-from ..delegation.delegation_engine import (
+from delegation.delegation_engine import (
     CognitiveDelegationEngine,
     DelegationDecision,
     ContextState
 )
-from ..sparring.sparring_partner import (
+from sparring.sparring_partner import (
     SparringPartnerSystem,
     SparringMode,
     SparringSession
 )
-from ..testing.test_automation import (
+from testing.test_automation import (
     TestAutomationPipeline,
     TestType,
     TestSuite,
@@ -331,7 +335,7 @@ class TestIntegration:
         test_pipeline = components["testing"]
         
         # Create mock test results
-        from ..testing.test_automation import TestResult, TestReport
+        from testing.test_automation import TestResult, TestReport
         
         # Simple failure (assertion)
         simple_failure = TestResult(
