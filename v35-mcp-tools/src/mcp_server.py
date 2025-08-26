@@ -218,3 +218,6 @@ def run_server():
 
 if __name__ == "__main__":
     run_server()
+
+# Add main alias for entry point
+main = run_server
