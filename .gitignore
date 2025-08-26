@@ -24,13 +24,16 @@ wheels/
 MANIFEST
 
 # Virtual environments
-.env
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.uv/
+
+# Environment files (keep .env tracked for configuration)
+# .env is intentionally NOT ignored for v35-mcp-tools configuration
 
 # IDE
 .vscode/
@@ -79,6 +82,10 @@ yarn.lock
 .ruff_cache/
 __pycache__/
 .mypy_cache/
+.pytest_cache/
+test_*.py
+*.db
+*.sqlite
 
 # Trinitas for Gemini-CLI specific
 gemini-cli/mcp_server/__pycache__/
