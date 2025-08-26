@@ -193,7 +193,7 @@ if [ $ERRORS -eq 0 ]; then
     echo ""
     echo "Next steps:"
     echo "1. Run ./setup_all.sh for complete MCP tools setup"
-    echo "2. Or setup MCP manually: cd v35-mcp-tools && uv sync"
+    echo "2. MCP tools will be installed to: ~/.claude/trinitas/mcp-tools/"
     echo "3. Restart Claude Desktop to load new agents"
     echo "4. Test with: 'Plan a system architecture' (Athena)"
     echo "5. Or: 'Optimize this code' (Artemis)"

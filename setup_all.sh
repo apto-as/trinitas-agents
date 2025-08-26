@@ -1,6 +1,6 @@
 #!/bin/bash
 # Trinitas v3.5 Complete Setup Script
-# UV専用、dotenv環境変数、MCP統合対応版
+# v35-mcp-toolsを~/.claude/trinitas/にインストール
 
 set -e  # エラーで停止
 
@@ -18,6 +18,9 @@ echo -e "${BLUE}================================================${NC}"
 
 # プロジェクトルート取得
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CLAUDE_HOME="$HOME/.claude"
+TRINITAS_HOME="$CLAUDE_HOME/trinitas"
+MCP_TOOLS_DIR="$TRINITAS_HOME/mcp-tools"
 
 # ===========================
 # Part 1: Claude Agents Setup
@@ -26,11 +29,25 @@ echo -e "\n${CYAN}[Part 1/3] Installing Claude Agents...${NC}"
 ./install_to_claude.sh
 
 # ===========================
-# Part 2: MCP Tools with UV
+# Part 2: MCP Tools Installation
 # ===========================
-echo -e "\n${CYAN}[Part 2/3] Setting up MCP Tools with UV...${NC}"
+echo -e "\n${CYAN}[Part 2/3] Installing MCP Tools to ~/.claude/trinitas/...${NC}"
 
-cd "$PROJECT_ROOT/v35-mcp-tools"
+# Backup existing installation if present
+if [ -d "$MCP_TOOLS_DIR" ]; then
+    BACKUP_DIR="$TRINITAS_HOME/backup_mcp_$(date +%Y%m%d_%H%M%S)"
+    echo -e "${YELLOW}Backing up existing MCP tools...${NC}"
+    mv "$MCP_TOOLS_DIR" "$BACKUP_DIR"
+    echo -e "${GREEN}✓${NC} Backup created: $BACKUP_DIR"
+fi
+
+# Copy v35-mcp-tools to ~/.claude/trinitas/mcp-tools
+echo -e "${BLUE}Copying MCP tools to $MCP_TOOLS_DIR...${NC}"
+cp -r "$PROJECT_ROOT/v35-mcp-tools" "$MCP_TOOLS_DIR"
+echo -e "${GREEN}✓${NC} MCP tools copied"
+
+# Change to installed directory
+cd "$MCP_TOOLS_DIR"
 
 # Check if uv is installed
 if ! command -v uv &> /dev/null; then
@@ -41,7 +58,7 @@ fi
 
 echo -e "${GREEN}✓${NC} UV is installed"
 
-# UV sync dependencies (no venv needed)
+# UV sync dependencies
 echo -e "${BLUE}Installing dependencies with UV...${NC}"
 uv sync
 
@@ -94,13 +111,13 @@ cat > /tmp/trinitas_mcp_config.json << EOF
       "command": "uv",
       "args": [
         "--directory",
-        "$PROJECT_ROOT/v35-mcp-tools",
+        "$MCP_TOOLS_DIR",
         "run",
         "trinitas-server"
       ],
       "env": {
-        "PYTHONPATH": "$PROJECT_ROOT/v35-mcp-tools",
-        "TRINITAS_ENV_FILE": "$PROJECT_ROOT/v35-mcp-tools/.env"
+        "PYTHONPATH": "$MCP_TOOLS_DIR",
+        "TRINITAS_ENV_FILE": "$MCP_TOOLS_DIR/.env"
       }
     }
   }
@@ -115,6 +132,7 @@ if [ -f "$CLAUDE_CONFIG" ]; then
     echo ""
     cat /tmp/trinitas_mcp_config.json
     echo ""
+    echo "Or run: cat /tmp/trinitas_mcp_config.json"
 else
     echo -e "${BLUE}Creating Claude MCP configuration...${NC}"
     cp /tmp/trinitas_mcp_config.json "$CLAUDE_CONFIG"
@@ -144,8 +162,15 @@ else
     echo -e "${RED}✗${NC} Agent installation incomplete"
 fi
 
+# Check MCP tools installation
+if [ -d "$MCP_TOOLS_DIR" ]; then
+    echo -e "${GREEN}✓${NC} MCP Tools installed at: $MCP_TOOLS_DIR"
+else
+    echo -e "${RED}✗${NC} MCP Tools installation failed"
+fi
+
 # Check UV tools
-cd "$PROJECT_ROOT/v35-mcp-tools"
+cd "$MCP_TOOLS_DIR"
 if uv run python -c "from src.core.trinitas_mcp_tools import TrinitasMCPTools; print('OK')" 2>/dev/null | grep -q "OK"; then
     echo -e "${GREEN}✓${NC} MCP Tools ready"
 else
@@ -159,6 +184,12 @@ echo -e "\n${BLUE}================================================${NC}"
 echo -e "${GREEN}✨ Setup Complete!${NC}"
 echo -e "${BLUE}================================================${NC}"
 echo ""
+echo "Installation Summary:"
+echo "  • Agents: ~/.claude/agents/"
+echo "  • MCP Tools: ~/.claude/trinitas/mcp-tools/"
+echo "  • Configuration: ~/.claude/trinitas/mcp-tools/.env"
+echo "  • MCP Server: ~/.claude/claude_desktop_config.json"
+echo ""
 echo "Next Steps:"
 echo "1. Restart Claude Desktop to load new agents and MCP server"
 echo "2. (Optional) Start Redis for hybrid memory: docker-compose up -d"
@@ -166,11 +197,6 @@ echo "3. Test with commands like:"
 echo "   - 'Plan a system architecture' (Athena)"
 echo "   - 'Optimize this code' (Artemis)"
 echo "   - 'Check security vulnerabilities' (Hestia)"
-echo ""
-echo "Configuration:"
-echo "  • Agents: ~/.claude/agents/"
-echo "  • Settings: v35-mcp-tools/.env"
-echo "  • MCP Config: ~/.claude/claude_desktop_config.json"
 echo ""
 echo -e "${GREEN}Athena${NC}: 'ふふ、完璧にセットアップできましたわ'"
 echo -e "${BLUE}Artemis${NC}: 'フン、効率的な構成ね'"
