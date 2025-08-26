@@ -1,0 +1,45 @@
+# Environment files
+.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Data
+redis-data/
+prometheus-data/
+grafana-data/

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Redis for coordination
+  redis:
+    image: redis:7-alpine
+    container_name: trinitas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Main MCP Engine API
+  mcp-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trinitas-mcp-engine
+    ports:
+      - "8000:8000"  # API port
+      - "9090:9090"  # Metrics port
+    environment:
+      - ENGINE_MODE=integrated
+      - ENGINE_HOST=0.0.0.0
+      - ENGINE_PORT=8000
+      - REDIS_URL=redis://redis:6379
+      - CLAUDE_MCP_URL=http://claude-mcp:8001
+      - LOCAL_LLM_URL=http://local-llm:8002
+      - ENABLE_AUTH=false  # Set to true and provide API_KEY in production
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - trinitas-network
+    restart: unless-stopped
+
+  # Claude MCP Service (placeholder - implement based on your Claude integration)
+  claude-mcp:
+    build:
+      context: ./src/services/claude-mcp
+      dockerfile: Dockerfile
+    container_name: trinitas-claude-mcp
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_PORT=8001
+      - LOG_LEVEL=INFO
+    networks:
+      - trinitas-network
+    restart: unless-stopped
+
+  # Local LLM MCP Service
+  local-llm:
+    build:
+      context: ./src/services/local-mcp
+      dockerfile: Dockerfile
+    container_name: trinitas-local-llm
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_PORT=8002
+      - LOCAL_LLM_ENDPOINT=${LOCAL_LLM_ENDPOINT:-http://host.docker.internal:1234/v1/}
+      - LOCAL_LLM_MODEL=${LOCAL_LLM_MODEL:-openai/gpt-oss-120b}
+      - LOG_LEVEL=INFO
+    networks:
+      - trinitas-network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # For accessing host's LM Studio
+
+  # Optional: Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trinitas-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - trinitas-network
+    restart: unless-stopped
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trinitas-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - trinitas-network
+    restart: unless-stopped
+
+networks:
+  trinitas-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:

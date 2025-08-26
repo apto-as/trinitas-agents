@@ -1,0 +1,5 @@
+mode: hybrid
+claude_api: true
+local_llm: false
+max_parallel: 3
+timeout: 30
