@@ -72,6 +72,9 @@ user_config.yaml
 local_config.yaml
 .local/
 
+# Serena project files
+.serena/
+
 # Installation artifacts
 node_modules/
 package-lock.json
