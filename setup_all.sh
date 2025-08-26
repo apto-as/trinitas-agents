@@ -44,6 +44,10 @@ fi
 # Copy v35-mcp-tools to ~/.claude/trinitas/mcp-tools
 echo -e "${BLUE}Copying MCP tools to $MCP_TOOLS_DIR...${NC}"
 cp -r "$PROJECT_ROOT/v35-mcp-tools" "$MCP_TOOLS_DIR"
+
+# Remove restrictive Python version file if it exists
+rm -f "$MCP_TOOLS_DIR/.python-version" 2>/dev/null
+
 echo -e "${GREEN}✓${NC} MCP tools copied"
 
 # Change to installed directory
