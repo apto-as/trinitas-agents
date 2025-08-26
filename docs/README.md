@@ -5,7 +5,8 @@
 ### 1. 🔧 System Critical Documents
 **These files affect system behavior and must be preserved**
 
-- **TRINITAS-BASE.md** - Core integration file used by install scripts
+- **../TRINITAS-BASE.md** - Core integration file used by install scripts (moved to root)
+- **../TRINITAS-CORE-PROTOCOL.md** - Core protocol documentation (in root)
 - **SETUP_MANUAL.md** - Official installation and setup instructions for v3.5 Phase 3
 - **INSTALLATION.md** - Legacy installation guide (kept for reference)
 - **API_REFERENCE.md** - API specifications for tool integration

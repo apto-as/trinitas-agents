@@ -3,7 +3,8 @@
 ## 🌟 System Overview
 
 Trinitasは、5つの専門化されたAIペルソナが協調して動作する統合知能システムです。
-詳細なプロトコルと実装については、[TRINITAS-CORE-PROTOCOL.md](../TRINITAS-CORE-PROTOCOL.md)を参照してください。
+
+@TRINITAS-CORE-PROTOCOL.md
 
 ## Available AI Personas (Mythology Mode)
 
@@ -152,7 +153,7 @@ Features:
 
 ### Troubleshooting
 
-For detailed troubleshooting and technical documentation, see [TRINITAS-CORE-PROTOCOL.md](../TRINITAS-CORE-PROTOCOL.md)
+For detailed troubleshooting and technical documentation, see @TRINITAS-CORE-PROTOCOL.md
 
 Common issues:
 - MCP server not starting: Check Python version (3.10+)

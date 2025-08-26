@@ -66,7 +66,9 @@ cp agents/seshat-documenter.md "$AGENTS_DIR/" 2>/dev/null && echo -e "${GREEN}�
 echo -e "\n${YELLOW}[Step 5/7]${NC} Installing Trinitas configuration..."
 cp TRINITAS_PERSONA_DEFINITIONS.yaml "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Persona definitions installed"
 cp TRINITAS-CORE-PROTOCOL.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Protocol installed"
-cp docs/TRINITAS-BASE.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Base configuration installed" || echo -e "${BLUE}ℹ${NC} Base config not found"
+# TRINITAS-BASE.mdとTRINITAS-CORE-PROTOCOL.mdを~/.claude/に直接配置（@インポート用）
+cp TRINITAS-BASE.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-BASE.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Base config not found"
+cp TRINITAS-CORE-PROTOCOL.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-CORE-PROTOCOL.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Protocol not found"
 
 # Hooksを正しい場所にコピー（存在する場合）
 if [ -d "hooks" ]; then
@@ -124,11 +126,11 @@ echo -e "${GREEN}✓${NC} Legacy environment script created"
 # 6. CLAUDE.mdの更新
 echo -e "\n${YELLOW}[Step 6/7]${NC} Updating CLAUDE.md..."
 
-# TRINITAS-BASE.mdの内容を読み込み
-if [ -f "docs/TRINITAS-BASE.md" ]; then
-    TRINITAS_CONTENT=$(<docs/TRINITAS-BASE.md)
-elif [ -f "$TRINITAS_DIR/TRINITAS-BASE.md" ]; then
-    TRINITAS_CONTENT=$(<"$TRINITAS_DIR/TRINITAS-BASE.md")
+# TRINITAS-BASE.mdの内容を読み込み（ルートから）
+if [ -f "TRINITAS-BASE.md" ]; then
+    TRINITAS_CONTENT=$(<TRINITAS-BASE.md)
+elif [ -f "$CLAUDE_HOME/TRINITAS-BASE.md" ]; then
+    TRINITAS_CONTENT=$(<"$CLAUDE_HOME/TRINITAS-BASE.md")
 else
     echo -e "${YELLOW}⚠${NC} TRINITAS-BASE.md not found, using default content"
     TRINITAS_CONTENT="# Trinitas Integration\n\nTrinitas v3.5 Phase 3 is installed.\nCheck ~/.claude/trinitas/ for configuration.\n\n5 Personas: Athena, Artemis, Hestia, Bellona, Seshat"
