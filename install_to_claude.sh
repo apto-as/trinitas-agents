@@ -66,7 +66,7 @@ cp agents/seshat-documenter.md "$AGENTS_DIR/" 2>/dev/null && echo -e "${GREEN}�
 echo -e "\n${YELLOW}[Step 5/7]${NC} Installing Trinitas configuration..."
 cp TRINITAS_PERSONA_DEFINITIONS.yaml "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Persona definitions installed"
 cp TRINITAS-CORE-PROTOCOL.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Protocol installed"
-cp TRINITAS-BASE.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Base configuration installed"
+cp docs/TRINITAS-BASE.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Base configuration installed" || echo -e "${BLUE}ℹ${NC} Base config not found"
 
 # Hooksを正しい場所にコピー（存在する場合）
 if [ -d "hooks" ]; then
@@ -74,29 +74,64 @@ if [ -d "hooks" ]; then
     cp -r hooks/* "$CLAUDE_HOME/hooks/" 2>/dev/null && echo -e "${GREEN}✓${NC} Hooks installed to ~/.claude/hooks/" || echo -e "${BLUE}ℹ${NC} No hooks to install"
 fi
 
-# 環境設定ファイル作成
+# 環境設定ファイル作成（.envファイルとして）
+cat > "$TRINITAS_DIR/config/.env" << 'EOF'
+# Trinitas v3.5 Phase 3 Environment Configuration
+# この設定はpython-dotenvで読み込まれます
+
+# Core paths
+CLAUDE_HOME="$HOME/.claude"
+AGENTS_DIR="$HOME/.claude/agents"
+TRINITAS_HOME="$HOME/.claude/trinitas"
+PERSONA_DEFINITIONS="$HOME/.claude/trinitas/TRINITAS_PERSONA_DEFINITIONS.yaml"
+
+# Naming mode
+TRINITAS_NAMING_MODE=mythology  # mythology or developer
+
+# Memory backend
+MEMORY_BACKEND=hybrid
+REDIS_URL=redis://localhost:6379
+CHROMADB_PATH=./chromadb_data
+SQLITE_PATH=./sqlite_data.db
+
+# Local LLM
+LOCAL_LLM_MODE=auto
+GEMINI_API_KEY=  # Add your key if using Gemini
+OPENAI_API_KEY=  # Add your key if using OpenAI
+
+# Logging
+LOG_LEVEL=INFO
+LOG_PATH=./logs/trinitas.log
+
+# Development
+DEBUG=false
+AUTO_DETECT=true
+EOF
+echo -e "${GREEN}✓${NC} Environment configuration created (.env)"
+
+# Legacy shell script for backward compatibility
 cat > "$TRINITAS_DIR/config/environment.sh" << 'EOF'
-# Trinitas Environment Configuration
+#!/bin/bash
+# Trinitas Environment Configuration (Legacy)
 export CLAUDE_HOME="$HOME/.claude"
 export AGENTS_DIR="$CLAUDE_HOME/agents"
 export TRINITAS_HOME="$CLAUDE_HOME/trinitas"
-export PERSONA_DEFINITIONS="$TRINITAS_HOME/TRINITAS_PERSONA_DEFINITIONS.yaml"
-export TRINITAS_NAMING_MODE="mythology"  # デフォルトは神話名
-export TRINITAS_MODE="auto"
+export TRINITAS_NAMING_MODE="mythology"
 EOF
-echo -e "${GREEN}✓${NC} Environment configuration created"
+chmod +x "$TRINITAS_DIR/config/environment.sh"
+echo -e "${GREEN}✓${NC} Legacy environment script created"
 
 # 6. CLAUDE.mdの更新
 echo -e "\n${YELLOW}[Step 6/7]${NC} Updating CLAUDE.md..."
 
 # TRINITAS-BASE.mdの内容を読み込み
-if [ -f "TRINITAS-BASE.md" ]; then
-    TRINITAS_CONTENT=$(<TRINITAS-BASE.md)
+if [ -f "docs/TRINITAS-BASE.md" ]; then
+    TRINITAS_CONTENT=$(<docs/TRINITAS-BASE.md)
 elif [ -f "$TRINITAS_DIR/TRINITAS-BASE.md" ]; then
     TRINITAS_CONTENT=$(<"$TRINITAS_DIR/TRINITAS-BASE.md")
 else
     echo -e "${YELLOW}⚠${NC} TRINITAS-BASE.md not found, using default content"
-    TRINITAS_CONTENT="# Trinitas Integration\n\nTrinitas system is installed. Check ~/.claude/trinitas/ for configuration."
+    TRINITAS_CONTENT="# Trinitas Integration\n\nTrinitas v3.5 Phase 3 is installed.\nCheck ~/.claude/trinitas/ for configuration.\n\n5 Personas: Athena, Artemis, Hestia, Bellona, Seshat"
 fi
 
 if [ -f "$CLAUDE_HOME/CLAUDE.md" ]; then
@@ -149,15 +184,22 @@ if [ $ERRORS -eq 0 ]; then
     echo "Installation Summary:"
     echo "  • Agents installed to: $AGENTS_DIR"
     echo "  • Configuration at: $TRINITAS_DIR"
+    echo "  • Environment config: $TRINITAS_DIR/config/.env"
     echo "  • CLAUDE.md updated with Trinitas integration"
     echo ""
+    echo "Important:"
+    echo "  • This installs agents only (Step 1 of 2)"
+    echo "  • For MCP tools, run ./setup_all.sh next"
+    echo ""
     echo "Next steps:"
-    echo "1. Restart Claude Code to load new agents"
-    echo "2. Test with: 'Plan a system architecture' (Athena)"
-    echo "3. Or: 'Optimize this code' (Artemis)"
-    echo "4. Or: 'Check security' (Hestia)"
-    echo "5. Or: 'Execute parallel tasks' (Bellona)"
-    echo "6. Or: 'Generate documentation' (Seshat)"
+    echo "1. Run ./setup_all.sh for complete MCP tools setup"
+    echo "2. Or setup MCP manually: cd v35-mcp-tools && uv sync"
+    echo "3. Restart Claude Desktop to load new agents"
+    echo "4. Test with: 'Plan a system architecture' (Athena)"
+    echo "5. Or: 'Optimize this code' (Artemis)"
+    echo "6. Or: 'Check security' (Hestia)"
+    echo "7. Or: 'Coordinate parallel tasks' (Bellona)"
+    echo "8. Or: 'Generate documentation' (Seshat)"
     echo ""
     echo -e "${GREEN}Athena${NC}: \"ふふ、完璧にインストールできましたわ\""
     echo -e "${BLUE}Artemis${NC}: \"フン、やっと正しい場所に配置されたわね\""
