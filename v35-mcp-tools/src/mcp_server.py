@@ -207,17 +207,18 @@ class MCPServer:
         await engine_client.shutdown()
         logger.info("MCP Server stopped")
 
-async def main():
-    """Main entry point"""
+async def async_main():
+    """Async main entry point"""
     server = MCPServer()
     await server.run_stdio()
 
 def run_server():
     """Entry point for uv command"""
-    asyncio.run(main())
+    asyncio.run(async_main())
+
+def main():
+    """Entry point alias for pyproject.toml"""
+    run_server()
 
 if __name__ == "__main__":
     run_server()
-
-# Add main alias for entry point
-main = run_server
