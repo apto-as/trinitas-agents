@@ -20,6 +20,8 @@ from .memory_core import (
     MemoryItem, MemoryType, Query, Context,
     WorkingMemory, EpisodicMemory, SemanticMemory, ProceduralMemory
 )
+from .security.persona_isolation import PersonaIsolationManager, get_isolation_manager
+from .security.access_control import AccessControlManager, get_access_control_manager, MemoryOperation
 
 logger = logging.getLogger(__name__)
 
@@ -94,39 +96,42 @@ class MemoryBackend(ABC):
 class RedisBackend(MemoryBackend):
     """Redis記憶バックエンド"""
     
-    def __init__(self, config: HybridConfig):
+    def __init__(self, config: HybridConfig, persona: str = 'shared'):
         self.config = config
+        self.persona = persona.lower()
         self.client = None
         self.async_client = None
         self.pipeline = None
+        self.isolation_manager = None
+        self.access_control = None
         
     async def initialize(self) -> bool:
-        """Redis接続を初期化"""
+        """Redis接続を初期化（ペルソナ分離対応）"""
         if not self.config.redis_enabled:
             return False
         
         try:
-            import redis
-            import aioredis
-            
-            # Sync client for some operations
-            self.client = redis.Redis(
-                host=self.config.redis_host,
-                port=self.config.redis_port,
-                db=self.config.redis_db,
-                decode_responses=False
+            # Initialize security managers
+            self.isolation_manager = await get_isolation_manager(
+                self.config.redis_host,
+                self.config.redis_port
             )
+            self.access_control = get_access_control_manager()
+            
+            # Get persona-specific connection
+            self.client = self.isolation_manager.get_connection(self.persona)
+            
+            if not self.client:
+                logger.warning(f"Failed to get connection for persona {self.persona}")
+                return False
             
             # Test connection
-            self.client.ping()
+            await self.client.ping()
             
-            # Async client for main operations
-            self.async_client = await aioredis.create_redis_pool(
-                f'redis://{self.config.redis_host}:{self.config.redis_port}/{self.config.redis_db}',
-                encoding='utf-8'
-            )
+            # For async operations, we'll use the same connection
+            self.async_client = self.client
             
-            logger.info("Redis backend initialized")
+            logger.info(f"Redis backend initialized for persona {self.persona}")
             return True
             
         except Exception as e:
@@ -156,11 +161,10 @@ class RedisBackend(MemoryBackend):
                 data
             )
             
-            # Add to persona index
+            # Add to persona index (fixed zadd format)
             await self.async_client.zadd(
                 f"persona:{item.persona}:{item.type.value}",
-                item.importance,
-                item.id
+                {item.id: item.importance}  # Dictionary format for zadd
             )
             
             # Add to type index
@@ -264,8 +268,9 @@ class RedisBackend(MemoryBackend):
     async def cleanup(self):
         """接続をクリーンアップ"""
         if self.async_client:
-            self.async_client.close()
-            await self.async_client.wait_closed()
+            await self.async_client.aclose()  # Use aclose for modern Redis
+        if self.client:
+            await self.client.aclose()
 
 # ChromaDB Backend
 class ChromaDBBackend(MemoryBackend):
@@ -546,11 +551,12 @@ class SQLiteBackend(MemoryBackend):
 class HybridMemoryBackend(MemoryBackend):
     """ハイブリッド記憶バックエンド"""
     
-    def __init__(self, config: Optional[HybridConfig] = None):
+    def __init__(self, config: Optional[HybridConfig] = None, persona: str = 'shared'):
         self.config = config or HybridConfig()
+        self.persona = persona.lower()
         
-        # Initialize backends
-        self.redis = RedisBackend(self.config)
+        # Initialize backends with persona support
+        self.redis = RedisBackend(self.config, persona=self.persona)
         self.chromadb = ChromaDBBackend(self.config)
         self.sqlite = SQLiteBackend(self.config)
         
@@ -563,8 +569,21 @@ class HybridMemoryBackend(MemoryBackend):
         self.cache = {}
         self.cache_ttl = {}
         
+        # Access control
+        self.access_control = None
+        self.auth_token = None
+        
     async def initialize(self) -> bool:
         """全バックエンドを初期化"""
+        # Initialize access control
+        self.access_control = get_access_control_manager()
+        
+        # Authenticate persona and get token
+        self.auth_token = await self.access_control.authenticate(self.persona)
+        if not self.auth_token:
+            logger.warning(f"Failed to authenticate persona {self.persona}")
+            # Continue without authentication for backward compatibility
+        
         # Always initialize SQLite as fallback
         self.sqlite_available = await self.sqlite.initialize()
         
@@ -576,15 +595,28 @@ class HybridMemoryBackend(MemoryBackend):
         if self.config.chromadb_enabled:
             self.chromadb_available = await self.chromadb.initialize()
         
-        logger.info(f"Hybrid backend initialized - "
+        logger.info(f"Hybrid backend initialized for persona {self.persona} - "
                    f"Redis: {self.redis_available}, "
                    f"ChromaDB: {self.chromadb_available}, "
                    f"SQLite: {self.sqlite_available}")
         
-        return self.sqlite_available  # At minimum, SQLite must work
+        return self.sqlite_available  # At minimum, SQLite must work  # At minimum, SQLite must work
     
     async def store(self, item: MemoryItem) -> bool:
-        """インテリジェントストレージルーティング"""
+        """インテリジェントストレージルーティング（アクセス制御付き）"""
+        # Check access control if authentication is enabled
+        if self.auth_token:
+            token_id = self.auth_token.token_id  # Use the hashed token_id
+            authorized, error = await self.access_control.authorize(
+                token_id,
+                MemoryOperation.STORE,
+                target_persona=self.persona,
+                memory_type=item.type.value
+            )
+            if not authorized:
+                logger.warning(f"Access denied for store operation: {error}")
+                return False
+        
         success = False
         
         # Route based on memory type and backend availability
@@ -636,7 +668,19 @@ class HybridMemoryBackend(MemoryBackend):
         return success
     
     async def retrieve(self, item_id: str) -> Optional[MemoryItem]:
-        """多層取得戦略"""
+        """多層取得戦略（アクセス制御付き）"""
+        # Check access control if authentication is enabled
+        if self.auth_token:
+            token_id = self.auth_token.token_id  # Use the hashed token_id
+            authorized, error = await self.access_control.authorize(
+                token_id,
+                MemoryOperation.RETRIEVE,
+                target_persona=self.persona
+            )
+            if not authorized:
+                logger.warning(f"Access denied for retrieve operation: {error}")
+                return None
+        
         # Check cache first
         if item_id in self.cache:
             if self._is_cache_valid(item_id):

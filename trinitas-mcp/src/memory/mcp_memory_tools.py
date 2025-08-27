@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 import logging
 
-from fastmcp import Context, Tool
+from fastmcp import Context, tools
 from pydantic import BaseModel, Field
 
 from .enhanced_manager import get_enhanced_memory_manager, semantic_search as search_semantic
@@ -50,7 +50,7 @@ async def create_memory_tools():
     tools = []
     
     # Remember Tool
-    @Tool(
+    @tools.tool(
         name="trinitas_remember",
         description="Store information in Trinitas agent memory for future recall"
     )
@@ -96,7 +96,7 @@ async def create_memory_tools():
             }
     
     # Recall Tool
-    @Tool(
+    @tools.tool(
         name="trinitas_recall",
         description="Retrieve relevant memories from Trinitas agent's past experiences"
     )
@@ -154,7 +154,7 @@ async def create_memory_tools():
             }
     
     # Share Memory Tool
-    @Tool(
+    @tools.tool(
         name="trinitas_share_memory",
         description="Share memories between Trinitas personas for collaborative problem-solving"
     )
@@ -201,7 +201,7 @@ async def create_memory_tools():
             }
     
     # Consolidate Memory Tool
-    @Tool(
+    @tools.tool(
         name="trinitas_consolidate",
         description="Consolidate short-term memories to long-term storage"
     )
@@ -233,7 +233,7 @@ async def create_memory_tools():
             }
     
     # Memory Statistics Tool
-    @Tool(
+    @tools.tool(
         name="trinitas_memory_stats",
         description="Get memory system statistics for monitoring and optimization"
     )
@@ -256,7 +256,7 @@ async def create_memory_tools():
             }
     
     # Memory Search Tool (Advanced)
-    @Tool(
+    @tools.tool(
         name="trinitas_memory_search",
         description="Advanced cross-persona memory search for complex queries"
     )
