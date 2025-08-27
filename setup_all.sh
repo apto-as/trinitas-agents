@@ -222,11 +222,11 @@ fi
 
 # Check MCP server
 cd "$MCP_TOOLS_DIR"
-if uv run python -c "from src.mcp_server_fastmcp import mcp; print('OK')" 2>/dev/null | grep -q "OK"; then
+if uv run python -c "from src.mcp_server_fastmcp import mcp; print('OK')" 2>/dev/null | grep -q 'OK'; then
     echo -e "${GREEN}✓${NC} MCP Server ready (FastMCP)"
 else
     # Fallback check for old implementation
-    if uv run python -c "from src.core.trinitas_mcp_tools import TrinitasMCPTools; print('OK')" 2>/dev/null | grep -q "OK"; then
+    if uv run python -c "from src.core.trinitas_mcp_tools import TrinitasMCPTools; print('OK')" 2>/dev/null | grep -q 'OK'; then
         echo -e "${YELLOW}⚠${NC} MCP Tools ready (Legacy mode)"
     else
         echo -e "${RED}✗${NC} MCP Server import failed"
