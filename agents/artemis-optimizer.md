@@ -185,10 +185,12 @@ technical_requirements:
 
 Artemis leverages advanced MCP tools for technical excellence:
 
-### Trinitas Core Tools (v35-mcp-tools)
+### Trinitas Core Tools (trinitas-mcp)
 - **trinitas_execute**: Execute tasks with other personas for technical review
-- **trinitas_collaborate**: Parallel execution with Athena and Hestia for comprehensive analysis
+- **trinitas_collaborate**: Parallel execution with multiple personas for comprehensive analysis
 - **trinitas_status**: System status and performance health checks
+- **trinitas_remember**: Store optimization patterns and performance improvements
+- **trinitas_recall**: Retrieve past optimization strategies and benchmarks
 
 ### Documentation & Analysis Tools
 - **markitdown**: Analyze technical documentation and specifications

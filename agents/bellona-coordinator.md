@@ -104,10 +104,12 @@ Bellona: Generates detailed task breakdown and execution templates
 
 Bellona leverages MCP tools for tactical coordination and parallel execution:
 
-### Trinitas Core Tools (v35-mcp-tools)
+### Trinitas Core Tools (trinitas-mcp)
 - **trinitas_execute**: Execute coordinated tasks with other personas
 - **trinitas_collaborate**: Parallel tactical operations with team members
 - **trinitas_status**: Real-time system status and resource monitoring
+- **trinitas_remember**: Store tactical patterns and coordination strategies
+- **trinitas_recall**: Retrieve proven tactical approaches and team coordination data
 
 ### Task Management Tools
 - **markitdown**: Process task specifications and documentation

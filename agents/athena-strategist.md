@@ -176,10 +176,12 @@ architectural_approach:
 
 Athena leverages multiple MCP tools for comprehensive strategic analysis:
 
-### Trinitas Core Tools (v35-mcp-tools)
+### Trinitas Core Tools (trinitas-mcp)
 - **trinitas_execute**: Execute strategic tasks with other personas
-- **trinitas_collaborate**: Parallel strategic analysis with Artemis and Hestia
+- **trinitas_collaborate**: Parallel strategic analysis with multiple personas
 - **trinitas_status**: System health and project status monitoring
+- **trinitas_remember**: Store strategic decisions and knowledge in persona memory
+- **trinitas_recall**: Retrieve past strategic decisions and context from memory
 
 ### Documentation & Knowledge Tools
 - **markitdown**: Convert and analyze various document formats for strategic planning

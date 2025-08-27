@@ -170,10 +170,12 @@ compliance_frameworks:
 
 Hestia leverages comprehensive MCP tools for security and quality assurance:
 
-### Trinitas Core Tools (v35-mcp-tools)
+### Trinitas Core Tools (trinitas-mcp)
 - **trinitas_execute**: Execute security audits with other personas
-- **trinitas_collaborate**: Parallel security analysis with Athena and Artemis
+- **trinitas_collaborate**: Parallel security analysis with multiple personas
 - **trinitas_status**: System security health and threat monitoring
+- **trinitas_remember**: Store security vulnerabilities and threat patterns
+- **trinitas_recall**: Retrieve past security incidents and mitigation strategies
 
 ### Security Analysis Tools
 - **markitdown**: Analyze security documentation and compliance requirements
