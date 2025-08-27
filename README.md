@@ -109,6 +109,33 @@ For comprehensive analysis using all three personas:
 → Athena (strategic) + Artemis (technical) + Hestia (security)
 ```
 
+## 🔒 Security Features (NEW)
+
+### Persona Isolation
+Each persona has its own isolated Redis database:
+- **Athena**: DB 0 - Strategic planning data
+- **Artemis**: DB 1 - Technical optimization data
+- **Hestia**: DB 2 - Security audit data
+- **Bellona**: DB 3 - Tactical coordination data
+- **Seshat**: DB 4 - Documentation archive
+- **Shared**: DB 5 - Cross-persona shared data
+- **System**: DB 6 - System-level data
+
+### Access Control
+- Token-based authentication (24-hour expiry)
+- Role-based access levels (READ, WRITE, DELETE, ADMIN)
+- Cross-persona access matrix
+- Rate limiting (1000 operations/minute per persona)
+
+### Security Configuration
+Configure security in `.env`:
+```bash
+PERSONA_ISOLATION_ENABLED=true
+ACCESS_CONTROL_ENABLED=true
+SECURITY_TOKEN_TTL=86400
+SECURITY_RATE_LIMIT=1000
+```
+
 ## 🏗️ System Architecture
 
 ```

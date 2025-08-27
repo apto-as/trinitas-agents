@@ -183,6 +183,23 @@ echo "  1. Docker: docker run -d --name trinitas-redis -p 6379:6379 redis:7-alpi
 echo "  2. Homebrew: brew install redis && brew services start redis"
 echo "  3. Skip: The system will work with SQLite fallback"
 
+# Check if Redis is running and initialize security databases
+if command -v redis-cli &> /dev/null; then
+    if redis-cli ping &> /dev/null; then
+        echo -e "\n${GREEN}✓${NC} Redis is running. Initializing persona databases..."
+        # Initialize persona-specific databases (0-4) and shared databases (5-6)
+        for i in {0..6}; do
+            redis-cli -n $i FLUSHDB &> /dev/null
+            echo -e "${GREEN}✓${NC} Initialized Redis DB $i"
+        done
+        echo -e "${GREEN}✓${NC} Persona isolation databases ready"
+    else
+        echo -e "${YELLOW}⚠${NC} Redis is installed but not running"
+    fi
+else
+    echo -e "${BLUE}ℹ${NC} Redis not found - system will use SQLite fallback"
+fi
+
 # ===========================
 # Verification
 # ===========================

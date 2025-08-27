@@ -133,4 +133,14 @@ Bellona leverages MCP tools for tactical coordination and parallel execution:
 
 ---
 
+## Security & Memory Access
+
+### Access Level: WRITE
+- **Memory Database**: Redis DB 3 (Isolated)
+- **Cross-persona Access**: Can read from athena and shared
+- **Write Permissions**: Own memories and shared space
+- **Special Focus**: Tactical coordination and execution metrics
+
+---
+
 *Bellona - Tactical Excellence in Every Execution Mode*

@@ -796,8 +796,11 @@ class HybridMemoryBackend(MemoryBackend):
             await self.redis.cleanup()
 
 # Factory function
-def create_hybrid_backend(config: Optional[Dict[str, Any]] = None) -> HybridMemoryBackend:
-    """ハイブリッドバックエンドを作成"""
+def create_hybrid_backend(
+    config: Optional[Dict[str, Any]] = None,
+    persona: str = 'shared'
+) -> HybridMemoryBackend:
+    """ハイブリッドバックエンドを作成（ペルソナ対応）"""
     if config:
         hybrid_config = HybridConfig(**config)
     else:
@@ -817,4 +820,4 @@ def create_hybrid_backend(config: Optional[Dict[str, Any]] = None) -> HybridMemo
         except ImportError:
             logger.info("ChromaDB not available - using SQLite for semantic search")
     
-    return HybridMemoryBackend(hybrid_config)
+    return HybridMemoryBackend(hybrid_config, persona=persona)

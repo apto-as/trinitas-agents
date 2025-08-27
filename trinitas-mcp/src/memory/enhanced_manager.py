@@ -32,13 +32,16 @@ load_dotenv()
 class EnhancedMemoryManager:
     """ハイブリッドバックエンド対応メモリマネージャー"""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """初期化"""
+    def __init__(self, persona: str = 'shared', config: Optional[Dict[str, Any]] = None):
+        """初期化（ペルソナ対応）"""
+        # Store persona
+        self.persona = persona.lower()
+        
         # Load configuration from environment or use provided config
         self.config = self._load_config(config)
         
-        # Initialize hybrid backend
-        self.backend = create_hybrid_backend(self.config)
+        # Initialize hybrid backend with persona
+        self.backend = create_hybrid_backend(self.config, persona=self.persona)
         
         # Persona configurations
         self.persona_configs = PERSONA_MEMORY_CONFIG
@@ -60,7 +63,7 @@ class EnhancedMemoryManager:
         self.pruning_task = None
         self.health_check_task = None
         
-        logger.info("Enhanced Memory Manager initialized with hybrid backend")
+        logger.info(f"Enhanced Memory Manager initialized with hybrid backend for persona {self.persona}")
     
     def _load_config(self, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """環境変数から設定を読み込み"""
@@ -337,12 +340,12 @@ class EnhancedMemoryManager:
 # Global instance
 enhanced_memory_manager = None
 
-async def get_enhanced_memory_manager() -> EnhancedMemoryManager:
-    """シングルトンインスタンスを取得"""
+async def get_enhanced_memory_manager(persona: str = 'shared') -> EnhancedMemoryManager:
+    """シングルトンインスタンスを取得（ペルソナ対応）"""
     global enhanced_memory_manager
     
     if not enhanced_memory_manager:
-        enhanced_memory_manager = EnhancedMemoryManager()
+        enhanced_memory_manager = EnhancedMemoryManager(persona=persona)
         await enhanced_memory_manager.initialize()
     
     return enhanced_memory_manager

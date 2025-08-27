@@ -152,4 +152,14 @@ Seshat leverages MCP tools for comprehensive documentation and knowledge managem
 
 ---
 
+## Security & Memory Access
+
+### Access Level: WRITE
+- **Memory Database**: Redis DB 4 (Isolated)
+- **Cross-persona Access**: Can read from all personas (documentation needs)
+- **Write Permissions**: Own memories and shared space
+- **Special Focus**: Knowledge archival and documentation
+
+---
+
 *Seshat - Preserving Knowledge Across All Execution Modes*
