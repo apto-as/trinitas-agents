@@ -66,6 +66,11 @@ echo -e "${GREEN}✓${NC} UV is installed"
 echo -e "${BLUE}Installing dependencies with UV...${NC}"
 uv sync
 
+# Install FastMCP for new server implementation
+echo -e "${BLUE}Installing FastMCP...${NC}"
+uv pip install fastmcp
+echo -e "${GREEN}✓${NC} FastMCP installed
+
 # Create .env file from template if not exists
 if [ ! -f ".env" ]; then
     echo -e "${BLUE}Creating .env configuration file...${NC}"
@@ -101,9 +106,34 @@ else
 fi
 
 # ===========================
-# Part 3: MCP Registration
+# Part 3: Hooks Installation
 # ===========================
-echo -e "\n${CYAN}[Part 3/3] Configuring MCP Server...${NC}"
+echo -e "\n${CYAN}[Part 3/4] Installing Hooks...${NC}"
+
+HOOKS_DIR="$CLAUDE_HOME/hooks"
+
+# Backup existing hooks if present
+if [ -d "$HOOKS_DIR" ]; then
+    BACKUP_DIR="$CLAUDE_HOME/backup_hooks_$(date +%Y%m%d_%H%M%S)"
+    echo -e "${YELLOW}Backing up existing hooks...${NC}"
+    mv "$HOOKS_DIR" "$BACKUP_DIR"
+    echo -e "${GREEN}✓${NC} Backup created: $BACKUP_DIR"
+fi
+
+# Copy hooks to ~/.claude/hooks
+echo -e "${BLUE}Installing hooks to $HOOKS_DIR...${NC}"
+cp -r "$PROJECT_ROOT/hooks" "$HOOKS_DIR"
+
+# Make all shell scripts executable
+chmod +x "$HOOKS_DIR"/**/*.sh 2>/dev/null || true
+chmod +x "$HOOKS_DIR"/*.sh 2>/dev/null || true
+
+echo -e "${GREEN}✓${NC} Hooks installed and made executable"
+
+# ===========================
+# Part 4: MCP Registration
+# ===========================
+echo -e "\n${CYAN}[Part 4/4] Configuring MCP Server...${NC}"
 
 CLAUDE_CONFIG="$HOME/.claude/claude_desktop_config.json"
 
@@ -173,12 +203,17 @@ else
     echo -e "${RED}✗${NC} MCP Tools installation failed"
 fi
 
-# Check UV tools
+# Check MCP server
 cd "$MCP_TOOLS_DIR"
-if uv run python -c "from src.core.trinitas_mcp_tools import TrinitasMCPTools; print('OK')" 2>/dev/null | grep -q "OK"; then
-    echo -e "${GREEN}✓${NC} MCP Tools ready"
+if uv run python -c "from src.mcp_server_fastmcp import mcp; print('OK')" 2>/dev/null | grep -q "OK"; then
+    echo -e "${GREEN}✓${NC} MCP Server ready (FastMCP)"
 else
-    echo -e "${RED}✗${NC} MCP Tools import failed"
+    # Fallback check for old implementation
+    if uv run python -c "from src.core.trinitas_mcp_tools import TrinitasMCPTools; print('OK')" 2>/dev/null | grep -q "OK"; then
+        echo -e "${YELLOW}⚠${NC} MCP Tools ready (Legacy mode)"
+    else
+        echo -e "${RED}✗${NC} MCP Server import failed"
+    fi
 fi
 
 # ===========================

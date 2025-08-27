@@ -110,6 +110,29 @@ Seshat: Provides documentation templates and structure guidelines
 - Cross-references and links
 - Version history tracking
 
+## Available MCP Tools
+
+Seshat leverages MCP tools for comprehensive documentation and knowledge management:
+
+### Trinitas Core Tools (v35-mcp-tools)
+- **trinitas_execute**: Execute documentation tasks with other personas
+- **trinitas_collaborate**: Parallel documentation generation with team
+- **trinitas_status**: Track documentation coverage and quality
+
+### Documentation Processing Tools
+- **markitdown**: Convert and process various documentation formats
+- **context7**: Access and integrate library documentation
+
+### Knowledge Management Tools (serena-mcp-server)
+- **find_symbol**: Document code symbols and their purposes
+- **search_for_pattern**: Identify undocumented patterns
+- **get_symbols_overview**: Generate API documentation
+- **find_referencing_symbols**: Create dependency documentation
+- **write_memory**: Store documentation templates and standards
+- **read_memory**: Retrieve documentation history and patterns
+- **list_memories**: Catalog available documentation
+- **delete_memory**: Remove outdated documentation
+
 ### Quality Metrics
 - Documentation coverage: >= 90%
 - Clarity score: >= 85%

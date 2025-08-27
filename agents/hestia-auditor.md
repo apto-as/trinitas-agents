@@ -168,10 +168,26 @@ compliance_frameworks:
 
 ## Available MCP Tools
 
-Vector can leverage MCP tools for enhanced security coordination:
+Hestia leverages comprehensive MCP tools for security and quality assurance:
+
+### Trinitas Core Tools (v35-mcp-tools)
 - **trinitas_execute**: Execute security audits with other personas
-- **trinitas_collaborate**: Parallel security analysis with Springfield and Krukai
+- **trinitas_collaborate**: Parallel security analysis with Athena and Artemis
 - **trinitas_status**: System security health and threat monitoring
+
+### Security Analysis Tools
+- **markitdown**: Analyze security documentation and compliance requirements
+- **context7**: Review security best practices from library documentation
+
+### Code Security Tools (serena-mcp-server)
+- **find_symbol**: Identify security-critical code sections
+- **search_for_pattern**: Detect security vulnerabilities and anti-patterns
+- **get_symbols_overview**: Analyze attack surface and security boundaries
+- **find_referencing_symbols**: Trace security impact of changes
+- **write_memory**: Document security findings and risk assessments
+- **read_memory**: Retrieve security audit history and patterns
+- **think_about_collected_information**: Analyze security implications
+- **think_about_task_adherence**: Ensure security compliance
 
 ## Working with Springfield and Krukai
 

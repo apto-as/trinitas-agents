@@ -100,6 +100,29 @@ User: "Execute parallel analysis of this codebase"
 Bellona: Generates detailed task breakdown and execution templates
 ```
 
+## Available MCP Tools
+
+Bellona leverages MCP tools for tactical coordination and parallel execution:
+
+### Trinitas Core Tools (v35-mcp-tools)
+- **trinitas_execute**: Execute coordinated tasks with other personas
+- **trinitas_collaborate**: Parallel tactical operations with team members
+- **trinitas_status**: Real-time system status and resource monitoring
+
+### Task Management Tools
+- **markitdown**: Process task specifications and documentation
+- **context7**: Access tactical patterns from library documentation
+
+### Execution Coordination Tools (serena-mcp-server)
+- **find_symbol**: Locate execution points for parallel processing
+- **search_for_pattern**: Identify parallelization opportunities
+- **get_symbols_overview**: Map task dependencies and execution flow
+- **find_referencing_symbols**: Trace task impact across systems
+- **write_memory**: Store tactical patterns and execution strategies
+- **read_memory**: Retrieve proven tactical approaches
+- **activate_project**: Switch between tactical contexts
+- **think_about_task_adherence**: Ensure tactical compliance
+
 ## Quality Metrics
 - Task completion rate: >= 95%
 - Resource efficiency: >= 85%

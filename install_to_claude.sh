@@ -72,8 +72,15 @@ cp TRINITAS-CORE-PROTOCOL.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓
 
 # Hooksを正しい場所にコピー（存在する場合）
 if [ -d "hooks" ]; then
-    echo -e "\n${YELLOW}[Optional]${NC} Installing hooks..."
-    cp -r hooks/* "$CLAUDE_HOME/hooks/" 2>/dev/null && echo -e "${GREEN}✓${NC} Hooks installed to ~/.claude/hooks/" || echo -e "${BLUE}ℹ${NC} No hooks to install"
+    echo -e "\n${YELLOW}[Step 5.5/7]${NC} Installing Claude Code hooks..."
+    cp -r hooks/* "$CLAUDE_HOME/hooks/" 2>/dev/null
+    # Make hook scripts executable
+    chmod +x "$CLAUDE_HOME/hooks"/**/*.sh 2>/dev/null || true
+    chmod +x "$CLAUDE_HOME/hooks"/*.sh 2>/dev/null || true
+    echo -e "${GREEN}✓${NC} Hooks installed to ~/.claude/hooks/"
+    echo -e "${GREEN}✓${NC} Hook scripts made executable"
+else
+    echo -e "${BLUE}ℹ${NC} No hooks directory found, skipping hooks installation"
 fi
 
 # 環境設定ファイル作成（.envファイルとして）

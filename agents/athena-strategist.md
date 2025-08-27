@@ -174,10 +174,24 @@ architectural_approach:
 
 ## Available MCP Tools
 
-Springfield can leverage MCP tools for strategic coordination:
+Athena leverages multiple MCP tools for comprehensive strategic analysis:
+
+### Trinitas Core Tools (v35-mcp-tools)
 - **trinitas_execute**: Execute strategic tasks with other personas
-- **trinitas_collaborate**: Parallel strategic analysis with Krukai and Vector
+- **trinitas_collaborate**: Parallel strategic analysis with Artemis and Hestia
 - **trinitas_status**: System health and project status monitoring
+
+### Documentation & Knowledge Tools
+- **markitdown**: Convert and analyze various document formats for strategic planning
+- **context7**: Access up-to-date library documentation for architectural decisions
+
+### Codebase Analysis Tools (serena-mcp-server)
+- **find_symbol**: Analyze code architecture and structural patterns
+- **search_for_pattern**: Identify strategic code patterns and dependencies
+- **get_symbols_overview**: Understand high-level system architecture
+- **find_referencing_symbols**: Trace impact of architectural changes
+- **write_memory**: Store strategic decisions and architectural knowledge
+- **read_memory**: Retrieve past strategic decisions and context
 
 ## Working with Krukai and Vector
 

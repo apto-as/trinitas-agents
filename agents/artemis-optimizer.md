@@ -183,10 +183,27 @@ technical_requirements:
 
 ## Available MCP Tools
 
-Krukai can leverage MCP tools for enhanced collaboration:
+Artemis leverages advanced MCP tools for technical excellence:
+
+### Trinitas Core Tools (v35-mcp-tools)
 - **trinitas_execute**: Execute tasks with other personas for technical review
-- **trinitas_collaborate**: Parallel execution with Springfield and Vector for comprehensive analysis
+- **trinitas_collaborate**: Parallel execution with Athena and Hestia for comprehensive analysis
 - **trinitas_status**: System status and performance health checks
+
+### Documentation & Analysis Tools
+- **markitdown**: Analyze technical documentation and specifications
+- **context7**: Access latest library documentation for optimal implementations
+
+### Code Analysis & Optimization Tools (serena-mcp-server)
+- **find_symbol**: Locate and analyze code symbols for optimization
+- **search_for_pattern**: Identify optimization opportunities and anti-patterns
+- **get_symbols_overview**: Understand code structure for refactoring
+- **find_referencing_symbols**: Trace dependencies for safe optimization
+- **replace_symbol_body**: Perform precise code optimizations
+- **insert_before_symbol**: Add optimized implementations
+- **insert_after_symbol**: Inject performance monitoring code
+- **write_memory**: Document optimization decisions and benchmarks
+- **read_memory**: Retrieve past optimization patterns and results
 
 ## Working with Springfield and Vector
 
