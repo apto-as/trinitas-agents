@@ -1,0 +1,175 @@
+{
+  "name": "trinitas-mcp-tools",
+  "version": "3.5.0",
+  "description": "Trinitas v3.5 MCP Tools - Five-mind integrated intelligence",
+  "mcpServers": {
+    "trinitas": {
+      "command": "uv",
+      "args": ["run", "trinitas-server"],
+      "env": {
+        "TRINITAS_MODE": "mythology",
+        "TRINITAS_NAMING": "mythology",
+        "AUTO_DETECT": "true",
+        "LOG_LEVEL": "INFO"
+      },
+      "capabilities": {
+        "tools": true,
+        "prompts": false,
+        "resources": false
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "trinitas_execute",
+      "description": "Execute task with specified Trinitas persona",
+      "parameters": {
+        "persona": {
+          "type": "string",
+          "enum": ["athena", "artemis", "hestia", "bellona", "seshat"],
+          "description": "Persona name (mythology mode)"
+        },
+        "task": {
+          "type": "string",
+          "description": "Task description"
+        },
+        "context": {
+          "type": "object",
+          "description": "Optional task context",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "trinitas_collaborate",
+      "description": "Execute task collaboratively with multiple personas",
+      "parameters": {
+        "task": {
+          "type": "string",
+          "description": "Task description"
+        },
+        "personas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["athena", "artemis", "hestia", "bellona", "seshat"]
+          },
+          "description": "List of persona names"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["sequential", "parallel", "consensus"],
+          "description": "Execution mode",
+          "default": "sequential"
+        }
+      }
+    },
+    {
+      "name": "trinitas_status",
+      "description": "Get Trinitas system status",
+      "parameters": {}
+    },
+    {
+      "name": "trinitas_parallel",
+      "description": "Execute tasks in parallel with multiple personas",
+      "parameters": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "persona": {
+                "type": "string",
+                "enum": ["athena", "artemis", "hestia", "bellona", "seshat"]
+              },
+              "task": {
+                "type": "string"
+              }
+            },
+            "required": ["persona", "task"]
+          },
+          "description": "List of persona-task pairs"
+        }
+      }
+    },
+    {
+      "name": "trinitas_chain",
+      "description": "Execute tasks in sequence, passing results between personas",
+      "parameters": {
+        "chain": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "persona": {
+                "type": "string",
+                "enum": ["athena", "artemis", "hestia", "bellona", "seshat"]
+              },
+              "task": {
+                "type": "string"
+              },
+              "use_previous": {
+                "type": "boolean",
+                "description": "Use result from previous step",
+                "default": true
+              }
+            },
+            "required": ["persona", "task"]
+          },
+          "description": "Chain of persona-task pairs"
+        }
+      }
+    },
+    {
+      "name": "trinitas_consensus",
+      "description": "Build consensus from all personas on a topic",
+      "parameters": {
+        "topic": {
+          "type": "string",
+          "description": "Topic or question for consensus"
+        },
+        "personas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["athena", "artemis", "hestia", "bellona", "seshat"]
+          },
+          "description": "Personas to include (default: all)",
+          "default": ["athena", "artemis", "hestia"]
+        }
+      }
+    }
+  ],
+  "personas": {
+    "athena": {
+      "display_name": "Athena",
+      "title": "Strategic Architect",
+      "description": "Strategic planning, architecture design, and long-term vision",
+      "triggers": ["strategy", "planning", "architecture", "vision", "roadmap"]
+    },
+    "artemis": {
+      "display_name": "Artemis",
+      "title": "Technical Perfectionist",
+      "description": "Performance optimization, code quality, and technical excellence",
+      "triggers": ["optimization", "performance", "quality", "technical", "efficiency"]
+    },
+    "hestia": {
+      "display_name": "Hestia",
+      "title": "Security Guardian",
+      "description": "Security analysis, risk assessment, and vulnerability detection",
+      "triggers": ["security", "audit", "risk", "vulnerability", "threat"]
+    },
+    "bellona": {
+      "display_name": "Bellona",
+      "title": "Tactical Coordinator",
+      "description": "Parallel task management and resource optimization",
+      "triggers": ["parallel", "coordinate", "tactical", "resource", "orchestrate"]
+    },
+    "seshat": {
+      "display_name": "Seshat",
+      "title": "Documentation Specialist",
+      "description": "Documentation generation and knowledge management",
+      "triggers": ["document", "documentation", "knowledge", "record", "guide"]
+    }
+  }
+}

@@ -22,8 +22,8 @@ main() {
     if ! validate_claude_environment; then
         cat << EOF
 {
-    "decision": "block",
-    "reason": "Invalid Claude Code environment: Required environment variables are missing or invalid"
+    "continue": false,
+    "error": "Invalid Claude Code environment: Required environment variables are missing or invalid"
 }
 EOF
         exit 0
@@ -41,22 +41,23 @@ EOF
         ensure_directory "$(dirname "$log_file")"
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] BLOCKED: $tool_name - $tool_args" >> "$log_file"
         
-        # Return JSON response for blocked operation
+        # Return JSON response for blocked operation (Claude Code spec compliant)
         cat << EOF
 {
-    "decision": "block",
-    "reason": "Dangerous operation detected: This operation has been blocked for safety reasons.",
+    "continue": false,
+    "error": "Dangerous operation detected: This operation has been blocked for safety reasons.",
+    "context": "Tool: $tool_name",
     "systemMessage": "⛔ Vector: 危険な操作を検出しました。\nTool: $tool_name\nこの操作は安全上の理由でブロックされました。"
 }
 EOF
         exit 0
     fi
     
-    # Safety check passed - return approve decision
+    # Safety check passed - return continue decision (Claude Code spec compliant)
     springfield_says "安全性チェックをパスしました。実行を続行します。"
     cat << EOF
 {
-    "decision": "approve"
+    "continue": true
 }
 EOF
     

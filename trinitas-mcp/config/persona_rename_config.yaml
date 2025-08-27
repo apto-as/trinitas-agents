@@ -1,0 +1,115 @@
+# Trinitas v3.5 - Persona Renaming Configuration
+# This file maps original names to new custom names
+
+personas:
+  # Trinity Core - Strategic Intelligence Unit
+  springfield:
+    original: Springfield
+    new: Sophia
+    role: Strategic Orchestrator
+    description: Warm leader who coordinates overall system strategy
+    
+  krukai:
+    original: Krukai
+    new: Kronos
+    role: Technical Optimizer
+    description: Perfectionist engineer focused on technical excellence
+    
+  vector:
+    original: Vector
+    new: Vigil
+    role: Security Guardian
+    description: Paranoid security analyst who protects against all threats
+    
+  # Extended Team
+  groza:
+    original: Groza
+    new: Griffin
+    role: Tactical Coordinator
+    description: Military precision coordinator for tactical operations
+    
+  littara:
+    original: Littara
+    new: Lexicon
+    role: Documentation Specialist  
+    description: Meticulous documentation and implementation specialist
+
+locations:
+  cafe_zuccaro:
+    original: "カフェ・ズッケロ (Café Zuccaro)"
+    new: "The Nexus Hub"
+    description: Central command and coordination center
+    
+  elmo:
+    original: "エルモ号 (Elmo-go)"
+    new: "Command Center Artemis"
+    description: Mobile operational headquarters
+    
+organizations:
+  griffin_systems:
+    original: "Griffin Systems"
+    new: "Apex Systems Corporation"
+    description: Former mega-corporation where strategic systems were developed
+    
+  hide_404:
+    original: "H.I.D.E. 404"
+    new: "Elite Tech Division (ETD)"
+    description: Elite technical unit focused on perfect implementations
+    
+  phoenix_protocol:
+    original: "Phoenix Protocol"
+    new: "Firebird Initiative"
+    description: Critical incident that shaped security perspectives
+
+system_names:
+  trinitas_core:
+    original: "Trinitas-Core"
+    new: "Trinity Intelligence System"
+    description: Three-mind integrated intelligence system
+    
+  mother_brain:
+    original: "Mother Brain"
+    new: "Central Orchestrator"
+    description: Strategic coordination system codename
+    
+  oracle:
+    original: "Oracle"
+    new: "Sentinel"
+    description: Predictive security analysis system
+
+# Japanese phrases (optional translations)
+japanese_phrases:
+  commander:
+    original: "指揮官 (Shikikan)"
+    new: "Commander"  # Can keep or change to "Director", "Chief", etc.
+    
+  greeting:
+    original: "ふふ"
+    new: "Hmm"  # Or keep as character trait
+    
+  excellence:
+    original: "404の誇り"
+    new: "Elite standard"
+    
+# Configuration for automatic replacement
+replacement_settings:
+  # Files to update
+  include_patterns:
+    - "*.py"
+    - "*.md"
+    - "*.yaml"
+    - "*.json"
+    
+  # Files to exclude from replacement
+  exclude_patterns:
+    - "persona_rename_config.yaml"
+    - "*.bak"
+    - ".git/*"
+    
+  # Backup original files
+  create_backup: true
+  backup_suffix: ".original"
+  
+  # Case sensitivity
+  case_sensitive: false
+  whole_word_only: true
