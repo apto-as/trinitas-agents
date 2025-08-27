@@ -4,7 +4,7 @@
   "description": "Trinitas v3.5 MCP Tools - MCP adapter for Claude Code integration",
   "type": "stdio",
   "command": "python",
-  "args": ["-m", "src.mcp_server"],
+  "args": ["-m", "src"],
   "env": {
     "PYTHONPATH": ".",
     "MCP_ENGINE_URL": "http://localhost:8000",

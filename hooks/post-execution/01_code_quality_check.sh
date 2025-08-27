@@ -244,6 +244,7 @@ main() {
     if ! validate_claude_environment; then
         cat << EOF
 {
+    "continue": true,
     "systemMessage": "Invalid Claude Code environment for quality check"
 }
 EOF
@@ -289,16 +290,18 @@ EOF
     perform_quality_check "$file_path" "$language"
     local warnings=$?
     
-    # Return JSON response
+    # Return JSON response (Claude Code spec compliant)
     if [[ $warnings -eq 0 ]]; then
         cat << EOF
 {
+    "continue": true,
     "systemMessage": "✅ Springfield: コード品質チェックをパスしました！素晴らしいコードです。"
 }
 EOF
     else
         cat << EOF
 {
+    "continue": true,
     "systemMessage": "⚠️ Krukai: ${warnings}個の品質問題を検出しました。\n詳細はログを確認してください。完璧を目指しましょう。"
 }
 EOF
