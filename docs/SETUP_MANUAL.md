@@ -66,7 +66,7 @@ MCP Toolsは`~/.claude/trinitas/mcp-tools/`にインストールされます：
 ./setup_all.sh  # これが全てを自動設定
 
 # 方法2: 手動インストール
-cp -r v35-mcp-tools ~/.claude/trinitas/mcp-tools
+cp -r trinitas-mcp ~/.claude/trinitas/mcp-tools
 cd ~/.claude/trinitas/mcp-tools
 uv sync
 ```
@@ -131,7 +131,7 @@ EOF
 
 #### Docker を使用する場合:
 ```bash
-cd v35-mcp-tools
+cd trinitas-mcp
 docker-compose up -d redis
 ```
 

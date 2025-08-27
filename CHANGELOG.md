@@ -38,7 +38,7 @@
 - README files missing Phase 3 features
 
 #### Migration Notes
-- Run migration scripts in v35-mcp-tools/migrations/ for existing data
+- Run migration scripts in trinitas-mcp/migrations/ for existing data
 - Update environment variables for memory backend configuration
 - Docker compose available for Redis deployment
 

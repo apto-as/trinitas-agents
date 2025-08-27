@@ -22,7 +22,7 @@ Trinitas Project is a five-mind integrated intelligence system designed for adva
 ## 📁 Project Structure
 
 ```
-v35-mcp-tools/
+trinitas-mcp/
 ├── src/                    # Source code
 │   ├── core/              # Core components
 │   │   ├── trinitas_mcp_tools.py      # Main MCP tools implementation
@@ -308,7 +308,7 @@ cp claude_desktop_config.json ~/.config/claude-desktop/config.json
     "trinitas": {
       "command": "python3",
       "args": [
-        "/your/path/to/trinitas-agents/v35-mcp-tools/mcp_server.py"
+        "/your/path/to/trinitas-agents/trinitas-mcp/mcp_server.py"
       ],
       "env": {
         "TRINITAS_LOG_LEVEL": "INFO",
@@ -566,7 +566,7 @@ python integration_tests.py
 ```bash
 # Clone repository
 git clone https://github.com/apto-as/trinitas-agents.git
-cd trinitas-agents/v35-mcp-tools
+cd trinitas-agents/trinitas-mcp
 
 # Install development dependencies
 pip install -r requirements-dev.txt

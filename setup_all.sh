@@ -1,6 +1,6 @@
 #!/bin/bash
 # Trinitas v3.5 Complete Setup Script
-# v35-mcp-toolsを~/.claude/trinitas/にインストール
+# trinitas-mcpを~/.claude/trinitas/にインストール
 
 set -e  # エラーで停止
 
@@ -41,9 +41,9 @@ if [ -d "$MCP_TOOLS_DIR" ]; then
     echo -e "${GREEN}✓${NC} Backup created: $BACKUP_DIR"
 fi
 
-# Copy v35-mcp-tools to ~/.claude/trinitas/mcp-tools
+# Copy trinitas-mcp to ~/.claude/trinitas/mcp-tools
 echo -e "${BLUE}Copying MCP tools to $MCP_TOOLS_DIR...${NC}"
-cp -r "$PROJECT_ROOT/v35-mcp-tools" "$MCP_TOOLS_DIR"
+cp -r "$PROJECT_ROOT/trinitas-mcp" "$MCP_TOOLS_DIR"
 
 # Remove restrictive Python version file if it exists
 rm -f "$MCP_TOOLS_DIR/.python-version" 2>/dev/null

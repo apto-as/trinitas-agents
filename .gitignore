@@ -33,7 +33,7 @@ venv.bak/
 .uv/
 
 # Environment files (keep .env tracked for configuration)
-# .env is intentionally NOT ignored for v35-mcp-tools configuration
+# .env is intentionally NOT ignored for trinitas-mcp configuration
 
 # IDE
 .vscode/
