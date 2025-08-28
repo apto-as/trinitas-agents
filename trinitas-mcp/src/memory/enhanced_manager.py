@@ -118,21 +118,24 @@ class EnhancedMemoryManager:
         return success
     
     async def remember(self, 
-                       persona: str,
                        content: Any,
                        memory_type: Optional[MemoryType] = None,
                        importance: float = 0.5,
                        tags: Optional[List[str]] = None,
-                       metadata: Optional[Dict[str, Any]] = None) -> MemoryItem:
-        """記憶を保存"""
+                       metadata: Optional[Dict[str, Any]] = None) -> str:
+        """記憶を保存
+        
+        Returns:
+            Memory ID if successful, None otherwise
+        """
         # Auto-determine memory type if not specified
         if memory_type is None:
             memory_type = self._infer_memory_type(content)
         
-        # Create memory item
+        # Create memory item with manager's persona
         item = MemoryItem(
             id="",  # Will be auto-generated
-            persona=persona,
+            persona=self.persona,  # Use manager's persona
             content=content,
             type=memory_type,
             importance=importance,
@@ -145,38 +148,23 @@ class EnhancedMemoryManager:
         
         if success:
             self.stats["total_stores"] += 1
-            logger.debug(f"Stored {memory_type.value} memory for {persona}: {item.id}")
+            logger.debug(f"Stored {memory_type.value} memory for {self.persona}: {item.id}")
+            return item.id
         else:
-            logger.error(f"Failed to store memory for {persona}")
-        
-        return item if success else None
+            logger.error(f"Failed to store memory for {self.persona}")
+            return None
     
     async def recall(self,
-                    persona: str,
-                    query_text: str,
-                    context: Optional[Context] = None,
-                    limit: int = 5,
-                    use_semantic: bool = True) -> List[MemoryItem]:
-        """記憶を想起"""
-        # Create query
-        query = Query(
-            text=query_text,
-            context=context,
-            limit=limit,
-            needs_experience=True,
-            needs_knowledge=use_semantic,
-            needs_procedure=use_semantic
-        )
+                    memory_id: str) -> Optional[MemoryItem]:
+        """記憶をIDで取得"""
+        # Retrieve specific memory by ID
+        item = await self.backend.retrieve(memory_id)
         
-        # Search via hybrid backend
-        results = await self.backend.search(query, persona)
+        if item:
+            self.stats["total_recalls"] += 1
+            logger.debug(f"Retrieved memory {memory_id} for {self.persona}")
         
-        self.stats["total_recalls"] += 1
-        
-        if results:
-            logger.debug(f"Retrieved {len(results)} memories for {persona}")
-        
-        return results
+        return item
     
     async def semantic_search(self,
                              query_text: str,
@@ -287,6 +275,31 @@ class EnhancedMemoryManager:
         
         return health
     
+    async def search(self,
+                    query: str,
+                    limit: int = 5,
+                    memory_type: Optional[MemoryType] = None,
+                    use_semantic: bool = True) -> List[MemoryItem]:
+        """記憶を検索"""
+        # Create query object
+        query_obj = Query(
+            text=query,
+            limit=limit,
+            needs_experience=(memory_type == MemoryType.EPISODIC) if memory_type else True,
+            needs_knowledge=(memory_type == MemoryType.SEMANTIC) if memory_type else use_semantic,
+            needs_procedure=(memory_type == MemoryType.PROCEDURAL) if memory_type else use_semantic
+        )
+        
+        # Search via hybrid backend with manager's persona
+        results = await self.backend.search(query_obj, self.persona)
+        
+        self.stats["total_searches"] = self.stats.get("total_searches", 0) + 1
+        
+        if results:
+            logger.debug(f"Found {len(results)} memories for {self.persona} matching '{query}'")
+        
+        return results
+
     def _infer_memory_type(self, content: Any) -> MemoryType:
         """コンテンツから記憶タイプを推論"""
         content_str = str(content).lower()

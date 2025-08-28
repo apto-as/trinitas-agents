@@ -106,9 +106,9 @@ else
 fi
 
 # ===========================
-# Part 3: Hooks Installation
+# Part 3: Minimal Hooks Installation
 # ===========================
-echo -e "\n${CYAN}[Part 3/4] Installing Hooks...${NC}"
+echo -e "\n${CYAN}[Part 3/4] Installing Minimal Hooks (Protocol Injection Only)...${NC}"
 
 HOOKS_DIR="$CLAUDE_HOME/hooks"
 
@@ -120,15 +120,20 @@ if [ -d "$HOOKS_DIR" ]; then
     echo -e "${GREEN}✓${NC} Backup created: $BACKUP_DIR"
 fi
 
-# Copy hooks to ~/.claude/hooks
-echo -e "${BLUE}Installing hooks to $HOOKS_DIR...${NC}"
-cp -r "$PROJECT_ROOT/hooks" "$HOOKS_DIR"
+# Create minimal hooks structure
+echo -e "${BLUE}Installing minimal hooks to $HOOKS_DIR...${NC}"
+mkdir -p "$HOOKS_DIR/core"
 
-# Make all shell scripts executable
-chmod +x "$HOOKS_DIR"/**/*.sh 2>/dev/null || true
-chmod +x "$HOOKS_DIR"/*.sh 2>/dev/null || true
+# Copy only essential files for protocol injection
+cp "$PROJECT_ROOT/hooks/core/protocol_injector.py" "$HOOKS_DIR/core/"
+cp "$PROJECT_ROOT/hooks/settings_minimal.json" "$HOOKS_DIR/settings.json"
+cp "$PROJECT_ROOT/hooks/.env" "$HOOKS_DIR/"
 
-echo -e "${GREEN}✓${NC} Hooks installed and made executable"
+# Make Python script executable
+chmod +x "$HOOKS_DIR/core/protocol_injector.py"
+
+echo -e "${GREEN}✓${NC} Minimal hooks installed (protocol injection only)"
+echo -e "${BLUE}ℹ${NC} All other functionality handled by trinitas-mcp"
 
 # ===========================
 # Part 4: MCP Registration

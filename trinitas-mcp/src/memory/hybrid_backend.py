@@ -797,12 +797,16 @@ class HybridMemoryBackend(MemoryBackend):
 
 # Factory function
 def create_hybrid_backend(
-    config: Optional[Dict[str, Any]] = None,
+    config: Optional[Union[Dict[str, Any], HybridConfig]] = None,
     persona: str = 'shared'
 ) -> HybridMemoryBackend:
     """ハイブリッドバックエンドを作成（ペルソナ対応）"""
     if config:
-        hybrid_config = HybridConfig(**config)
+        # Handle both dict and HybridConfig
+        if isinstance(config, HybridConfig):
+            hybrid_config = config
+        else:
+            hybrid_config = HybridConfig(**config)
     else:
         # Auto-detect available backends
         hybrid_config = HybridConfig()

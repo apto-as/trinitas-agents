@@ -6,7 +6,7 @@ Trinitas v3.5 Persona-Specific Embedding Models
 
 import numpy as np
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from datetime import datetime
 import json

@@ -6,6 +6,7 @@ Properly implements MCP protocol using FastMCP framework
 
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from fastmcp import FastMCP, Context
@@ -16,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Create FastMCP server instance
 mcp = FastMCP(
-    name="Trinitas v3.5 MCP Tools",
-    description="Five-mind integrated intelligence system for Claude Code"
+    name="Trinitas v3.5 MCP Tools"
 )
 
 # Import Trinitas components
@@ -196,17 +196,58 @@ async def trinitas_remember(
         if ctx:
             await ctx.info(f"Storing {memory_type} memory for {persona}")
         
-        # This would integrate with the memory system
-        # For now, return a placeholder
-        return {
-            "status": "stored",
-            "persona": persona,
-            "memory_type": memory_type,
-            "timestamp": "2024-08-26T00:00:00Z"
+        # Import memory system
+        from memory.enhanced_manager import EnhancedMemoryManager
+        from memory.memory_core import MemoryType
+        
+        # Create manager for persona
+        manager = EnhancedMemoryManager(persona=persona.lower())
+        await manager.initialize()
+        
+        # Map string type to MemoryType enum
+        type_map = {
+            "working": MemoryType.WORKING,
+            "episodic": MemoryType.EPISODIC,
+            "semantic": MemoryType.SEMANTIC,
+            "procedural": MemoryType.PROCEDURAL
         }
+        
+        memory_type_enum = type_map.get(memory_type.lower(), MemoryType.SEMANTIC)
+        
+        # Extract importance from metadata if provided
+        importance = 0.5
+        tags = []
+        if metadata:
+            importance = metadata.get("importance", 0.5)
+            tags = metadata.get("tags", [])
+        
+        # Store memory
+        memory_id = await manager.remember(
+            content=content,
+            memory_type=memory_type_enum,
+            importance=importance,
+            tags=tags
+        )
+        
+        if memory_id:
+            return {
+                "status": "stored",
+                "persona": persona,
+                "memory_type": memory_type,
+                "memory_id": memory_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "failed",
+                "persona": persona,
+                "error": "Failed to store memory"
+            }
         
     except Exception as e:
         logger.error(f"Error storing memory: {e}")
+        if ctx:
+            await ctx.error(f"Failed to store memory: {str(e)}")
         return {"error": str(e), "status": "failed"}
 
 @mcp.tool
@@ -234,17 +275,58 @@ async def trinitas_recall(
         if ctx:
             await ctx.info(f"Recalling memories for {persona}: {query[:50]}...")
         
-        # This would integrate with the memory system
-        # For now, return a placeholder
+        # Import memory system
+        from memory.enhanced_manager import EnhancedMemoryManager
+        from memory.memory_core import MemoryType
+        
+        # Create manager for persona
+        manager = EnhancedMemoryManager(persona=persona.lower())
+        await manager.initialize()
+        
+        # Map string type to MemoryType enum if provided
+        memory_type_enum = None
+        if memory_type:
+            type_map = {
+                "working": MemoryType.WORKING,
+                "episodic": MemoryType.EPISODIC,
+                "semantic": MemoryType.SEMANTIC,
+                "procedural": MemoryType.PROCEDURAL
+            }
+            memory_type_enum = type_map.get(memory_type.lower())
+        
+        # Search memories
+        results = await manager.search(
+            query=query,
+            limit=limit,
+            memory_type=memory_type_enum
+        )
+        
+        # Format results
+        memories = []
+        if results:
+            for item in results:
+                memory_dict = {
+                    "id": item.id,
+                    "content": item.content,
+                    "type": item.type.value,
+                    "importance": item.importance,
+                    "timestamp": item.timestamp.isoformat() if item.timestamp else None,
+                    "tags": item.tags if hasattr(item, 'tags') else []
+                }
+                memories.append(memory_dict)
+        
         return {
             "status": "success",
             "persona": persona,
-            "memories": [],
-            "count": 0
+            "memories": memories,
+            "count": len(memories),
+            "query": query
         }
         
     except Exception as e:
         logger.error(f"Error recalling memory: {e}")
+        if ctx:
+            await ctx.error(f"Failed to recall memory: {str(e)}")
         return {"error": str(e), "status": "failed"}
 
 # Add initialization hook
@@ -256,8 +338,8 @@ async def initialize():
     except Exception as e:
         logger.warning(f"Engine client initialization failed (non-critical): {e}")
 
-# Set server lifecycle
-mcp.set_startup_handler(initialize)
+# Set server lifecycle (if supported by FastMCP version)
+# mcp.set_startup_handler(initialize)  # Commented out - not supported in current FastMCP
 
 if __name__ == "__main__":
     # Run the FastMCP server (defaults to stdio transport)

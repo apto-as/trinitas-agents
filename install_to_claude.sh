@@ -47,9 +47,8 @@ fi
 echo -e "\n${YELLOW}[Step 3/7]${NC} Creating directory structure..."
 mkdir -p "$AGENTS_DIR"
 mkdir -p "$TRINITAS_DIR/config"
-# Claude Codeのhooksは~/.claude/hooks/に配置する必要がある
-mkdir -p "$CLAUDE_HOME/hooks/pre-execution"
-mkdir -p "$CLAUDE_HOME/hooks/post-execution"
+# Minimal hooks structure for protocol injection only
+mkdir -p "$CLAUDE_HOME/hooks/core"
 echo -e "${GREEN}✓${NC} Directory structure created"
 
 # 4. エージェントファイルをコピー（神話名で）
@@ -70,15 +69,16 @@ cp TRINITAS-CORE-PROTOCOL.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}�
 cp TRINITAS-BASE.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-BASE.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Base config not found"
 cp TRINITAS-CORE-PROTOCOL.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-CORE-PROTOCOL.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Protocol not found"
 
-# Hooksを正しい場所にコピー（存在する場合）
+# Install minimal hooks for protocol injection
 if [ -d "hooks" ]; then
-    echo -e "\n${YELLOW}[Step 5.5/7]${NC} Installing Claude Code hooks..."
-    cp -r hooks/* "$CLAUDE_HOME/hooks/" 2>/dev/null
-    # Make hook scripts executable
-    chmod +x "$CLAUDE_HOME/hooks"/**/*.sh 2>/dev/null || true
-    chmod +x "$CLAUDE_HOME/hooks"/*.sh 2>/dev/null || true
-    echo -e "${GREEN}✓${NC} Hooks installed to ~/.claude/hooks/"
-    echo -e "${GREEN}✓${NC} Hook scripts made executable"
+    echo -e "\n${YELLOW}[Step 5.5/7]${NC} Installing minimal hooks (protocol injection only)..."
+    cp hooks/core/protocol_injector.py "$CLAUDE_HOME/hooks/core/" 2>/dev/null
+    cp hooks/settings_minimal.json "$CLAUDE_HOME/hooks/settings.json" 2>/dev/null
+    cp hooks/.env "$CLAUDE_HOME/hooks/" 2>/dev/null
+    # Make Python script executable
+    chmod +x "$CLAUDE_HOME/hooks/core/protocol_injector.py" 2>/dev/null || true
+    echo -e "${GREEN}✓${NC} Minimal hooks installed (protocol injection only)"
+    echo -e "${BLUE}ℹ${NC} All other functionality handled by trinitas-mcp"
 else
     echo -e "${BLUE}ℹ${NC} No hooks directory found, skipping hooks installation"
 fi
