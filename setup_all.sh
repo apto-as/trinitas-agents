@@ -62,6 +62,16 @@ fi
 
 echo -e "${GREEN}✓${NC} UV is installed"
 
+# Clean up any broken venv if it exists
+if [ -d ".venv" ]; then
+    echo -e "${YELLOW}Removing existing virtual environment...${NC}"
+    rm -rf .venv
+fi
+
+# Create fresh virtual environment
+echo -e "${BLUE}Creating fresh Python virtual environment...${NC}"
+uv venv
+
 # UV sync dependencies
 echo -e "${BLUE}Installing dependencies with UV...${NC}"
 uv sync
@@ -69,7 +79,7 @@ uv sync
 # Install FastMCP for new server implementation
 echo -e "${BLUE}Installing FastMCP...${NC}"
 uv pip install fastmcp
-echo -e "${GREEN}✓${NC} FastMCP installed
+echo -e "${GREEN}✓${NC} FastMCP installed"
 
 # Create .env file from template if not exists
 if [ ! -f ".env" ]; then
