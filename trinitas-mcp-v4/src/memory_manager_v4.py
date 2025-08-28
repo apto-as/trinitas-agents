@@ -14,6 +14,14 @@ import pickle
 
 logger = logging.getLogger(__name__)
 
+# Import performance optimizer if available
+try:
+    from performance_optimizer import PerformanceOptimizer
+    OPTIMIZER_AVAILABLE = True
+except ImportError:
+    OPTIMIZER_AVAILABLE = False
+    logger.info("Performance optimizer not available, using standard operations")
+
 class EnhancedMemoryManager:
     """
     強化メモリマネージャー
@@ -42,6 +50,21 @@ class EnhancedMemoryManager:
             "pattern_storage": {},     # Identified patterns
             "performance_metrics": {}, # Performance data
         }
+        
+        # Initialize performance optimizer
+        self.optimizer = None
+        if OPTIMIZER_AVAILABLE:
+            optimizer_config = {
+                "cache": {
+                    "max_size": 1000,
+                    "max_memory_mb": 100
+                },
+                "db": {
+                    "max_connections": 10
+                }
+            }
+            self.optimizer = PerformanceOptimizer(optimizer_config)
+            logger.info("Performance optimizer initialized")
         
         logger.info(f"Memory Manager initialized with backend: {self.backend}")
     
@@ -204,6 +227,14 @@ class EnhancedMemoryManager:
         Returns:
             List of matching memories
         """
+        # Use optimizer if available
+        if self.optimizer and self.optimizer.optimization_enabled:
+            results, response_time = await self.optimizer.optimized_recall(
+                self, query, semantic=semantic, filters=filters, limit=limit
+            )
+            logger.debug(f"Optimized recall completed in {response_time:.2f}ms")
+            return results
+        
         results = []
         
         try:

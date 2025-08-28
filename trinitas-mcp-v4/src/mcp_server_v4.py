@@ -22,6 +22,7 @@ from bellona_distributor import BellonaTaskDistributor, TaskDistribution
 from seshat_monitor import SeshatMemoryMonitor
 from memory_manager_v4 import EnhancedMemoryManager
 from learning_system import LearningSystem
+from local_llm_client import LocalLLMClient, LocalLLMManager
 
 # Load environment variables
 load_dotenv(Path(__file__).parent.parent / "config" / ".env")
@@ -58,8 +59,14 @@ class TrinitasV4Core:
         self.bellona_distributor = BellonaTaskDistributor(self.config)
         self.seshat_monitor = SeshatMemoryMonitor(self.config)
         
-        # Check Local LLM status
+        # Initialize Local LLM
         self.local_llm_enabled = os.getenv("LOCAL_LLM_ENABLED", "false").lower() == "true"
+        self.llm_client = LocalLLMClient(self.config) if self.local_llm_enabled else None
+        self.llm_manager = LocalLLMManager(self.config) if self.local_llm_enabled else None
+        
+        # Start LLM manager if enabled
+        if self.llm_manager:
+            asyncio.create_task(self.llm_manager.start())
         
         logger.info(f"Trinitas v4.0 Core initialized - LLM: {'Enabled' if self.local_llm_enabled else 'Disabled'}")
     
@@ -167,17 +174,36 @@ class TrinitasV4Core:
     
     async def _process_with_local_llm(self, task: str, distribution: TaskDistribution, context: Dict) -> Dict:
         """Process task with Local LLM"""
-        # TODO: Implement actual Local LLM integration
         logger.info(f"Processing with Local LLM: {distribution.task_id}")
         
-        # Placeholder implementation
-        return {
-            "type": "llm_result",
-            "task_id": distribution.task_id,
-            "content": f"LLM processed: {task[:50]}...",
-            "processor": "local_llm",
-            "tokens_used": distribution.estimated_tokens
-        }
+        if not self.llm_client:
+            return {
+                "type": "llm_error",
+                "task_id": distribution.task_id,
+                "error": "LLM client not initialized",
+                "processor": "local_llm"
+            }
+        
+        # Process with actual LLM
+        llm_response = await self.llm_client.process_task(task, context)
+        
+        if llm_response.success:
+            return {
+                "type": "llm_result",
+                "task_id": distribution.task_id,
+                "content": llm_response.content,
+                "processor": "local_llm",
+                "model": llm_response.model,
+                "tokens_used": llm_response.tokens_used,
+                "response_time_ms": llm_response.response_time_ms
+            }
+        else:
+            return {
+                "type": "llm_error",
+                "task_id": distribution.task_id,
+                "error": llm_response.error,
+                "processor": "local_llm"
+            }
     
     async def _execute_persona_task(self, persona: str, task: str, context: Dict) -> Dict:
         """Execute task with specified persona"""
