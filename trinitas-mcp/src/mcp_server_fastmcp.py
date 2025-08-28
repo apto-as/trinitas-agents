@@ -341,6 +341,9 @@ async def initialize():
 # Set server lifecycle (if supported by FastMCP version)
 # mcp.set_startup_handler(initialize)  # Commented out - not supported in current FastMCP
 
-if __name__ == "__main__":
-    # Run the FastMCP server (defaults to stdio transport)
+def main():
+    """Main entry point for the Trinitas MCP server"""
     mcp.run()
+
+if __name__ == "__main__":
+    main()

@@ -60,7 +60,7 @@ all = [
 
 [project.scripts]
 trinitas-mcp = "src.cli:main"
-trinitas-server = "src.mcp_server:run_server"
+trinitas-server = "src.mcp_server_fastmcp:main"
 trinitas-setup = "src.setup:setup_claude"
 
 [project.urls]
