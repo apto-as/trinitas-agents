@@ -16,11 +16,13 @@ dependencies = [
     "chromadb>=0.4.0",
     "sqlite-utils>=3.0",
     "python-dotenv>=1.0.0",
-    "numpy>=1.24.0",
 ]
 
 [project.scripts]
 trinitas-v4 = "src.mcp_server_v4:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.mcp]
 name = "trinitas-mcp-v4"

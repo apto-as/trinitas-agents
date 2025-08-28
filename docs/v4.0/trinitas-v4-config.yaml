@@ -1,0 +1,71 @@
+# Trinitas v4.0 Configuration
+version: "4.0"
+
+# Core Settings
+core:
+  mode: "memory_focused"  # Changed from "full_execution"
+  
+# Memory System
+memory:
+  backend: "hybrid"
+  redis:
+    enabled: true
+    url: "redis://localhost:6379"
+  chromadb:
+    enabled: true
+    path: "./chromadb_data"
+  sqlite:
+    enabled: true
+    path: "./sqlite_data.db"
+  
+# Learning System  
+learning:
+  enabled: true
+  storage: "./learning_data"
+  auto_learn: true
+  pattern_recognition: true
+
+# Local LLM Settings (Default: OFF)
+local_llm:
+  enabled: false  # Default OFF
+  endpoint: "http://192.168.99.102:1234/v1/"
+  model: "auto"
+  
+  # Task Distribution Rules (Bellona's domain)
+  distribution:
+    max_parallel_tasks: 3
+    priority_threshold: 0.3  # Only tasks with importance < 0.3
+    task_types:
+      - "documentation_generation"
+      - "code_formatting"
+      - "simple_analysis"
+      - "data_transformation"
+  
+  # When OFF, Bellona focuses on:
+  fallback_roles:
+    bellona:
+      - "memory_system_optimization"
+      - "learning_pattern_analysis"
+      - "coordination_with_seshat"
+    seshat:
+      - "memory_usage_monitoring"
+      - "access_pattern_analysis"
+      - "optimization_recommendations"
+
+# Persona Settings
+personas:
+  athena:
+    focus: "strategic_memory_patterns"
+    learning_weight: 0.9
+  artemis:
+    focus: "performance_optimization"
+    cache_optimization: true
+  hestia:
+    focus: "security_validation"
+    audit_frequency: "continuous"
+  bellona:
+    focus: "task_distribution"  # or "memory_management" when LLM is OFF
+    decision_model: "tactical"
+  seshat:
+    focus: "usage_monitoring"
+    reporting_interval: 300  # seconds

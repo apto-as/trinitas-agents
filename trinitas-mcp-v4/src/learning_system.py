@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 from pathlib import Path
 import pickle
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -586,7 +585,7 @@ class LearningSystem:
             "auto_learn": self.auto_learn,
             "pattern_recognition": self.pattern_recognition,
             "total_patterns": len(self.patterns),
-            "pattern_types": dict(self.pattern_index.keys()),
+            "pattern_types": list(self.pattern_index.keys()),
             "learning_count": self.learning_count,
             "pattern_matches": self.pattern_matches,
             "success_rate": self.success_rate,
