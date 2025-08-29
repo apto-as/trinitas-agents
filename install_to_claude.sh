@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Trinitas v3.5 Claude Home Installation Script
+# Trinitas v4.0 Claude Home Installation Script
 # 正しい場所（~/.claude/）にインストール
 
 set -e  # エラーで停止
@@ -13,7 +13,7 @@ BLUE='\033[0;94m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}================================================${NC}"
-echo -e "${BLUE}  Trinitas v3.5 - Claude Home Installation${NC}"
+echo -e "${BLUE}  Trinitas v4.0 - Claude Home Installation${NC}"
 echo -e "${BLUE}================================================${NC}"
 
 # パス設定
@@ -65,9 +65,10 @@ cp agents/seshat-documenter.md "$AGENTS_DIR/" 2>/dev/null && echo -e "${GREEN}�
 echo -e "\n${YELLOW}[Step 5/7]${NC} Installing Trinitas configuration..."
 cp TRINITAS_PERSONA_DEFINITIONS.yaml "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Persona definitions installed"
 cp TRINITAS-CORE-PROTOCOL.md "$TRINITAS_DIR/" 2>/dev/null && echo -e "${GREEN}✓${NC} Protocol installed"
-# TRINITAS-BASE.mdとTRINITAS-CORE-PROTOCOL.mdを~/.claude/に直接配置（@インポート用）
+# TRINITAS-BASE.mdとTRINITAS-CORE-PROTOCOL.mdとTRINITAS-ORCHESTRATOR.mdを~/.claude/に直接配置（@インポート用）
 cp TRINITAS-BASE.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-BASE.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Base config not found"
 cp TRINITAS-CORE-PROTOCOL.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-CORE-PROTOCOL.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Protocol not found"
+cp TRINITAS-ORCHESTRATOR.md "$CLAUDE_HOME/" 2>/dev/null && echo -e "${GREEN}✓${NC} TRINITAS-ORCHESTRATOR.md installed to ~/.claude/" || echo -e "${BLUE}ℹ${NC} Orchestrator protocol not found"
 
 # Install minimal hooks for protocol injection
 if [ -d "hooks" ]; then
@@ -85,7 +86,7 @@ fi
 
 # 環境設定ファイル作成（.envファイルとして）
 cat > "$TRINITAS_DIR/config/.env" << 'EOF'
-# Trinitas v3.5 Phase 3 Environment Configuration
+# Trinitas v4.0 Environment Configuration
 # この設定はpython-dotenvで読み込まれます
 
 # Core paths
@@ -140,7 +141,7 @@ elif [ -f "$CLAUDE_HOME/TRINITAS-BASE.md" ]; then
     TRINITAS_CONTENT=$(<"$CLAUDE_HOME/TRINITAS-BASE.md")
 else
     echo -e "${YELLOW}⚠${NC} TRINITAS-BASE.md not found, using default content"
-    TRINITAS_CONTENT="# Trinitas Integration\n\nTrinitas v3.5 Phase 3 is installed.\nCheck ~/.claude/trinitas/ for configuration.\n\n5 Personas: Athena, Artemis, Hestia, Bellona, Seshat"
+    TRINITAS_CONTENT="# Trinitas Integration\n\nTrinitas v4.0 is installed.\nCheck ~/.claude/trinitas/ for configuration.\n\n5 Personas: Athena, Artemis, Hestia, Bellona, Seshat"
 fi
 
 if [ -f "$CLAUDE_HOME/CLAUDE.md" ]; then
@@ -198,10 +199,10 @@ if [ $ERRORS -eq 0 ]; then
     echo ""
     echo "Important:"
     echo "  • This installs agents only (Step 1 of 2)"
-    echo "  • For MCP tools, run ./setup_all.sh next"
+    echo "  • For MCP tools (v4.0), run ./setup_all.sh next"
     echo ""
     echo "Next steps:"
-    echo "1. Run ./setup_all.sh for complete MCP tools setup"
+    echo "1. Run ./setup_all.sh for complete MCP tools v4.0 setup"
     echo "2. MCP tools will be installed to: ~/.claude/trinitas/mcp-tools/"
     echo "3. Restart Claude Desktop to load new agents"
     echo "4. Test with: 'Plan a system architecture' (Athena)"

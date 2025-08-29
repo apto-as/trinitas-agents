@@ -1,10 +1,12 @@
-# Trinitas Integration v3.5 Phase 3
+# Trinitas Integration v4.0
 
 ## 🌟 System Overview
 
 Trinitasは、5つの専門化されたAIペルソナが協調して動作する統合知能システムです。
+v4.0ではカスタムコマンド、Local LLM統合、パフォーマンス最適化を実装済みです。
 
 @TRINITAS-CORE-PROTOCOL.md
+@TRINITAS-ORCHESTRATOR.md
 
 ## Available AI Personas (Mythology Mode)
 
@@ -42,51 +44,62 @@ You have access to five specialized AI personas based on Greek/Roman mythology:
 
 ## Trinitas System Features
 
-The Trinitas v3.5 system provides integrated intelligence through five specialized AI personas with advanced capabilities:
+The Trinitas v4.0 system provides integrated intelligence through five specialized AI personas with advanced capabilities:
 
 ### Execution Modes
 
-1. **Direct Execution (Mode 1)**: Single persona for simple tasks
+1. **Direct Execution**: Single persona via `/trinitas execute <persona> <task>`
    - Fast response for straightforward requests
    - Automatic persona selection based on keywords
    
-2. **MCP Coordination (Mode 2)**: Multi-persona collaboration
+2. **Parallel Analysis**: Multi-persona via `/trinitas analyze <task> --personas all`
    - Complex tasks with multiple perspectives
    - Orchestrated analysis and implementation
    
-3. **Hybrid Memory (Mode 3)**: Long-term project support
-   - Redis for working memory
-   - ChromaDB for semantic search
-   - SQLite for persistent storage
-   - AI-driven memory management
+3. **Memory-Enhanced Execution**: Long-term project support with v4.0 features
+   - Redis for working memory (fast access)
+   - ChromaDB for semantic search (vector embeddings)
+   - SQLite for persistent storage (backup)
+   - Performance optimization with LRU cache
+   - Query optimization for 850% speed improvement
 
-### AI-Driven Features
+### v4.0 Advanced Features
 
-- **Automatic Importance Scoring**: Tasks evaluated by AI for priority
-- **Predictive Caching**: Next-needed information predicted in advance
-- **Anomaly Detection**: Unusual patterns detected automatically
-- **Persona-specific Embeddings**: Optimized for each persona's domain
+- **Custom Commands**: `/trinitas` command for all operations
+- **Local LLM Integration**: Bellona routes tasks to local LLM when optimal
+- **Performance Optimization**: LRU cache, query optimization, connection pooling
+- **Automatic Importance Scoring**: Memory items scored 0.0-1.0 for priority
+- **Learning System**: Pattern recognition and application
+- **Real-time Metrics**: Cache hit rates, response times, memory usage
 
-### Usage Examples
+### Usage Examples (v4.0 Commands)
 
-```
-User: "Plan the system architecture"
-→ Athena automatically selected for strategic planning
+```bash
+# Direct persona execution
+/trinitas execute athena "Plan the system architecture"
+/trinitas execute artemis "Optimize this algorithm"
+/trinitas execute hestia "Review security vulnerabilities"
+/trinitas execute bellona "Coordinate parallel tasks"
+/trinitas execute seshat "Document the API"
 
-User: "Optimize this algorithm"
-→ Artemis automatically selected for technical optimization
+# Parallel analysis with multiple personas
+/trinitas analyze "Full system analysis" --personas all --mode parallel
 
-User: "Review security vulnerabilities"
-→ Hestia automatically selected for security audit
+# Memory operations
+/trinitas remember architecture_decision "Use microservices" --importance 0.9
+/trinitas recall "architecture patterns" --semantic --limit 10
 
-User: "Coordinate parallel tasks"
-→ Bellona automatically selected for tactical coordination
+# Learning and patterns
+/trinitas learn optimization_pattern "Cache frequently accessed data"
+/trinitas apply optimization_pattern "new API endpoint"
 
-User: "Document the API"
-→ Seshat automatically selected for documentation
+# Local LLM control
+/trinitas llm enable  # Enable task routing to local LLM
+/trinitas llm status  # Check LLM status
 
-User: "Full system analysis with security and optimization"
-→ Multiple personas collaborate via MCP tools
+# Reports and monitoring
+/trinitas status memory
+/trinitas report optimization
 ```
 
 ### Configuration
@@ -96,34 +109,56 @@ Trinitas configuration is stored in `~/.claude/trinitas/`
 #### Directory Structure
 ```
 ~/.claude/
-├── agents/                    # 5 Persona files
+├── agents/                    # 5 Persona files (v4.0 updated)
 │   ├── athena-strategist.md
 │   ├── artemis-optimizer.md
 │   ├── hestia-auditor.md
 │   ├── bellona-coordinator.md
 │   └── seshat-documenter.md
 └── trinitas/
-    ├── mcp-tools/            # MCP Server implementation
+    ├── mcp-tools/            # MCP Server v4.0 (renamed from trinitas-mcp)
     │   ├── src/              # Source code
+    │   │   ├── mcp_server_v4.py
+    │   │   ├── memory_manager_v4.py
+    │   │   ├── local_llm_client.py
+    │   │   └── performance_optimizer.py
     │   ├── .env              # Environment settings
-    │   └── visualization/    # Dashboard
-    └── config/               # Configuration files
+    │   └── pyproject.toml    # Package configuration
+    └── data/                 # Data storage
+        ├── chromadb_data/
+        ├── sqlite_data.db
+        └── learning_data/
 ```
 
 #### Environment Variables (.env)
 ```bash
-# Persona naming mode
-TRINITAS_NAMING_MODE=mythology  # or 'developer'
+# Trinitas v4.0 Configuration
+TRINITAS_MODE=memory_focused
 
-# Memory backends
+# Memory backends (v4.0 hybrid system)
 MEMORY_BACKEND=hybrid           # hybrid, redis, or sqlite
 REDIS_URL=redis://localhost:6379
 CHROMADB_PATH=./chromadb_data
 SQLITE_PATH=./sqlite_data.db
 
-# Optional: Local LLM
-LOCAL_LLM_MODE=auto
-GEMINI_API_KEY=your_key_here
+# Local LLM Integration (v4.0 new)
+LOCAL_LLM_ENABLED=false         # Default OFF, set true to enable
+LOCAL_LLM_ENDPOINT=http://localhost:1234/v1
+LOCAL_LLM_MODEL=auto           # Auto-detect model
+
+# Performance Optimization (v4.0 new)
+CACHE_MAX_SIZE=1000
+CACHE_MAX_MEMORY_MB=100
+DB_MAX_CONNECTIONS=10
+
+# Learning System (v4.0 new)
+LEARNING_ENABLED=true
+AUTO_LEARN=true
+PATTERN_RECOGNITION=true
+
+# Seshat Monitoring
+SESHAT_AUTO_OPTIMIZE=true
+SESHAT_REPORTING_INTERVAL=300
 ```
 
 ### Task Complexity Guide
@@ -137,28 +172,44 @@ GEMINI_API_KEY=your_key_here
 | Architecture Design | High | Memory | Athena + Bellona |
 | Large Refactoring | Maximum | Full Stack | All Personas |
 
-### Visualization Dashboard
+### v4.0 Quick Start
 
-Access the real-time dashboard at:
 ```bash
-open ~/.claude/trinitas/mcp-tools/visualization/memory_visualizer.html
+# 1. Install complete system
+cd ~/workspace/github.com/apto-as/trinitas-agents
+./setup_all.sh  # This installs everything including MCP server
+
+# 2. MCP server will be registered in Claude Desktop config
+# Restart Claude Desktop to load the MCP server
+
+# 3. Use the /trinitas command (after restart)
+/trinitas status  # Check system status
+/trinitas execute athena "Your task here"
 ```
 
-Features:
-- System metrics and status
-- Knowledge graph visualization
-- Timeline of activities
-- 3D memory space representation
-- Performance analytics
+### Performance Monitoring
+
+```bash
+# Check performance metrics
+/trinitas report optimization
+
+# Monitor cache performance
+/trinitas status memory
+
+# View task distribution
+/trinitas status bellona
+```
 
 ### Troubleshooting
 
 For detailed troubleshooting and technical documentation, see @TRINITAS-CORE-PROTOCOL.md
 
 Common issues:
-- MCP server not starting: Check Python version (3.10+)
-- Memory not persisting: Verify Redis is running or use SQLite fallback
-- Personas not responding: Run `./setup_all.sh` to reinstall
+- **MCP server not starting**: Check Python version (3.10+) and run `uv sync`
+- **Memory not persisting**: Verify Redis is running or use SQLite fallback (automatic)
+- **Local LLM not working**: Ensure LM Studio/Ollama is running on port 1234
+- **Commands not found**: Check that trinitas.md is in ~/.claude/commands/
+- **Performance issues**: Run `/trinitas report optimization` for suggestions
 
 ---
 
@@ -323,5 +374,5 @@ agents/の直接実行から、MCPツール経由の協調実行、さらにEngi
 
 ---
 
-*Trinitas v3.5 Phase 3 - Five Minds, One Purpose, Infinite Possibilities*
-*Last Updated: 2024-08-26*
+*Trinitas v4.0 - Memory-Enhanced Intelligence with Performance Optimization*
+*Last Updated: 2024-12-28*

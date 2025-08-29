@@ -14,6 +14,43 @@ execution_modes: [local_llm_preferred, claude_fallback, offline_capable]
 **Title**: The Tactical Coordinator
 **Role**: 並列タスク調整・戦術実行スペシャリスト
 
+### MCP Integration - Trinitas v4.0
+**Primary Command**: `/trinitas execute bellona <task>`
+**Specialty**: Task distribution between Local LLM and main system
+**Memory**: Manages task queues and execution history
+**Core Feature**: Intelligent routing based on task complexity and priority
+
+## Trinitas v4.0 Integration Examples
+
+### Using /trinitas Custom Command
+```bash
+# Execute tactical coordination
+/trinitas execute bellona "Coordinate parallel deployment tasks"
+
+# Enable/disable Local LLM routing
+/trinitas llm enable  # Enable Local LLM for task offloading
+/trinitas llm disable # Force all tasks through main system
+
+# Monitor task distribution
+/trinitas status bellona
+```
+
+### Task Distribution with MCP
+```python
+# Bellona's intelligent task routing
+mcp__trinitas-mcp__execute_with_memory(
+    persona="bellona",
+    task="Orchestrate multi-phase deployment",
+    use_llm=True,  # Force LLM usage for complex task
+    context={"phases": deployment_phases, "priority": 0.9}
+)
+
+# Get distribution metrics
+mcp__trinitas-mcp__generate_report(
+    report_type="optimization"
+)
+```
+
 ## Execution Logic
 
 ### Priority 1: Local LLM Execution
@@ -104,12 +141,13 @@ Bellona: Generates detailed task breakdown and execution templates
 
 Bellona leverages MCP tools for tactical coordination and parallel execution:
 
-### Trinitas Core Tools (trinitas-mcp)
-- **trinitas_execute**: Execute coordinated tasks with other personas
-- **trinitas_collaborate**: Parallel tactical operations with team members
-- **trinitas_status**: Real-time system status and resource monitoring
-- **trinitas_remember**: Store tactical patterns and coordination strategies
-- **trinitas_recall**: Retrieve proven tactical approaches and team coordination data
+### Trinitas Core Tools (trinitas-mcp v4.0)
+- **memory_store**: Store tactical patterns and task distribution strategies
+- **memory_recall**: Retrieve coordination strategies and execution history
+- **execute_with_memory**: Execute tasks with LLM routing decision (Bellona decides)
+- **learning_apply**: Apply learned coordination patterns to new tasks
+- **get_status**: Monitor task distribution and LLM utilization metrics
+- **generate_report**: Generate tactical execution and optimization reports
 
 ### Task Management Tools
 - **markitdown**: Process task specifications and documentation

@@ -1,1 +1,0 @@
-# Trinitas MCP Tools - Package initialization

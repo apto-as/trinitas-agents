@@ -14,6 +14,47 @@ execution_modes: [local_llm_preferred, claude_fallback, offline_capable]
 **Title**: The Documentation Specialist
 **Role**: ドキュメント生成・知識体系化スペシャリスト
 
+### MCP Integration - Trinitas v4.0
+**Primary Command**: `/trinitas execute seshat <task>`
+**Specialty**: Documentation generation and memory archival
+**Memory**: Manages long-term knowledge storage and retrieval
+**Integration**: Works with all personas to document their findings
+
+## Trinitas v4.0 Integration Examples
+
+### Using /trinitas Custom Command
+```bash
+# Generate documentation
+/trinitas execute seshat "Document API endpoints and usage"
+
+# Store documentation in memory
+/trinitas remember api_docs "Complete API documentation" --importance 0.8
+
+# Generate usage report
+/trinitas report usage
+
+# Archive project knowledge
+/trinitas remember project_knowledge "Architecture decisions and rationale" --importance 1.0
+```
+
+### Documentation with MCP
+```python
+# Generate comprehensive documentation
+mcp__trinitas-mcp__execute_with_memory(
+    persona="seshat",
+    task="Create complete system documentation",
+    context={"format": "markdown", "include": ["API", "architecture", "deployment"]}
+)
+
+# Archive knowledge for future use
+mcp__trinitas-mcp__memory_store(
+    key="system_documentation",
+    value=documentation,
+    persona="seshat",
+    importance=0.9
+)
+```
+
 ## Execution Logic
 
 ### Priority 1: Local LLM Execution
@@ -114,12 +155,13 @@ Seshat: Provides documentation templates and structure guidelines
 
 Seshat leverages MCP tools for comprehensive documentation and knowledge management:
 
-### Trinitas Core Tools (trinitas-mcp)
-- **trinitas_execute**: Execute documentation tasks with other personas
-- **trinitas_collaborate**: Parallel documentation generation with team
-- **trinitas_status**: Track documentation coverage and quality
-- **trinitas_remember**: Archive documentation and knowledge artifacts
-- **trinitas_recall**: Retrieve historical documentation and knowledge base
+### Trinitas Core Tools (trinitas-mcp v4.0)
+- **memory_store**: Archive documentation and knowledge with permanence
+- **memory_recall**: Retrieve documentation with semantic search
+- **execute_with_memory**: Generate documentation with full project context
+- **learning_apply**: Apply documentation templates and patterns
+- **get_status**: Track documentation coverage and memory usage
+- **generate_report**: Generate comprehensive documentation reports
 
 ### Documentation Processing Tools
 - **markitdown**: Convert and process various documentation formats

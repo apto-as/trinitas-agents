@@ -5,204 +5,154 @@
 system: "trinitas-mcp"
 category: "Meta-Persona Orchestration via MCP"
 purpose: "MCPツールによる五位一体統合知能システム"
-status: "Fully Operational"
+status: "Fully Operational with v4.0 Features"
 ---
 
 # 🌟 概要
 
 Trinitasは、5つの専門化されたAIペルソナがMCP Toolsを通じて協調動作する統合知能システムです。
-本プロトコルは実際に利用可能なMCPツールのコマンドと実行方法を定義します。
+v4.0では、カスタムコマンド、Local LLM統合、パフォーマンス最適化を実装済みです。
 
-## 🎯 実際のMCPツール実行方法
+## 🎯 Trinitasコマンド実行方法
 
 ### 基本構造
-```python
-# MCP Tool: mcp__trinitas-mcp__[operation]
+```bash
+/trinitas <operation> [args] [--options]
 ```
 
-### 利用可能なMCPオペレーション
+### 利用可能なオペレーション
 
-#### 1. ペルソナ実行 (execute_persona)
-```python
-mcp__trinitas-mcp__execute_persona(
-    persona="athena",  # athena|artemis|hestia|bellona|seshat
-    task="システムアーキテクチャの分析",
-    context={"project": "e-commerce", "focus": "scalability"}
-)
+#### 1. ペルソナ実行 (execute)
+```bash
+# 特定のペルソナでタスクを実行
+/trinitas execute athena "システムアーキテクチャの分析"
+/trinitas execute artemis "パフォーマンス最適化"
+/trinitas execute hestia "セキュリティ監査"
+/trinitas execute bellona "並列タスク調整"
+/trinitas execute seshat "ドキュメント生成"
 ```
 
-#### 2. 並列分析 (parallel_analyze)
-```python
-mcp__trinitas-mcp__parallel_analyze(
-    task="包括的システム分析",
-    personas=["athena", "artemis", "hestia"],
-    coordination_mode="parallel"  # parallel|sequential|wave
-)
+#### 2. 並列分析 (analyze)
+```bash
+# 複数ペルソナによる並列分析
+/trinitas analyze "包括的システム分析" --personas athena,artemis,hestia
+/trinitas analyze "セキュリティレビュー" --personas all --mode parallel
+/trinitas analyze "アーキテクチャ評価" --mode wave  # 段階的実行
 ```
 
-#### 3. メモリ操作 (memory_operations)
-```python
+#### 3. メモリ操作 (remember/recall)
+```bash
 # 記憶の保存
-mcp__trinitas-mcp__remember(
-    key="project_architecture",
-    value="マイクロサービス設計",
-    importance=0.9,
-    persona="athena"
-)
+/trinitas remember project_architecture "マイクロサービス設計" --importance 0.9
+/trinitas remember security_finding "SQLインジェクション脆弱性" --importance 1.0 --persona hestia
 
 # 記憶の取得
-mcp__trinitas-mcp__recall(
-    query="architecture",
-    personas=["athena", "artemis"],
-    semantic_search=True
-)
+/trinitas recall architecture --semantic --limit 10
+/trinitas recall "security patterns" --persona hestia --semantic
+/trinitas recall optimization --limit 5
+```
+
+#### 4. 学習システム (learn/apply)
+```bash
+# パターン学習
+/trinitas learn optimization_pattern "インデックス追加で90%高速化" --category performance
+/trinitas learn security_pattern "入力検証の強化" --category security
+
+# パターン適用
+/trinitas apply optimization_pattern "新しいAPIエンドポイント"
+/trinitas apply security_pattern "ユーザー入力処理"
+```
+
+#### 5. Local LLM制御 (llm)
+```bash
+# LLM有効/無効/状態確認
+/trinitas llm enable   # Local LLMを有効化
+/trinitas llm disable  # Local LLMを無効化
+/trinitas llm status   # 現在のLLM状態を確認
+```
+
+#### 6. ステータスとレポート (status/report)
+```bash
+# ステータス確認
+/trinitas status         # 全体ステータス
+/trinitas status memory  # メモリシステム状態
+/trinitas status bellona # Bellonaのタスク分配状態
+
+# レポート生成
+/trinitas report usage        # 使用状況レポート
+/trinitas report optimization # 最適化レポート
+/trinitas report security     # セキュリティレポート
 ```
 
 ## 🔄 協調動作パターン（実装済み）
 
 ### Pattern 1: 包括的システム分析
-**理想的な動作を実際のMCPツールで実現**
+**カスタムコマンドによる段階的分析**
 
-```python
+```bash
 # Step 1: 初期分析（Discovery Phase）
-discovery_results = {}
+/trinitas execute athena "システム全体のアーキテクチャと戦略的課題を分析"
+/trinitas execute artemis "コード品質とパフォーマンスボトルネックを特定"
+/trinitas execute hestia "セキュリティ脆弱性とリスクを評価"
 
-# Athenaによる戦略分析
-discovery_results['strategy'] = mcp__trinitas-mcp__execute_persona(
-    persona="athena",
-    task="システム全体のアーキテクチャと戦略的課題を分析",
-    context={"target": "e-commerce-platform", "phase": "discovery"}
-)
+# Step 2: 分析結果をメモリに保存
+/trinitas remember initial_analysis "戦略・技術・セキュリティの初期評価完了" --importance 0.8
 
-# Artemisによる技術分析
-discovery_results['technical'] = mcp__trinitas-mcp__execute_persona(
-    persona="artemis",
-    task="コード品質とパフォーマンスボトルネックを特定",
-    context={"target": "e-commerce-platform", "metrics": True}
-)
+# Step 3: 深化分析（Deep Analysis Phase）- 並列実行
+/trinitas analyze "発見された課題の詳細分析" --personas all --mode parallel
 
-# Hestiaによるリスク分析
-discovery_results['security'] = mcp__trinitas-mcp__execute_persona(
-    persona="hestia",
-    task="セキュリティ脆弱性とリスクを評価",
-    context={"target": "e-commerce-platform", "owasp": True}
-)
+# Step 4: 統合と実行計画（Integration Phase）
+/trinitas execute bellona "全ペルソナの分析結果を統合し、実行計画を立案"
 
-# Step 2: 深化分析（Deep Analysis Phase）- 並列実行
-deep_analysis = mcp__trinitas-mcp__parallel_analyze(
-    task="発見された課題の詳細分析",
-    personas=["athena", "artemis", "hestia", "bellona", "seshat"],
-    coordination_mode="parallel",
-    context=discovery_results
-)
+# Step 5: ドキュメント化
+/trinitas execute seshat "分析結果と実行計画を体系的に文書化"
 
-# Step 3: 統合と実行計画（Integration Phase）
-integration = mcp__trinitas-mcp__execute_persona(
-    persona="bellona",  # Bellonaが戦術的に統合
-    task="全ペルソナの分析結果を統合し、実行計画を立案",
-    context={
-        "discovery": discovery_results,
-        "analysis": deep_analysis,
-        "priority": "security-first"
-    }
-)
-
-# Step 4: ドキュメント化
-documentation = mcp__trinitas-mcp__execute_persona(
-    persona="seshat",
-    task="分析結果と実行計画を体系的に文書化",
-    context=integration
-)
-
-# Step 5: メモリへの永続化
-mcp__trinitas-mcp__remember(
-    key="system_analysis_" + timestamp,
-    value={
-        "discovery": discovery_results,
-        "analysis": deep_analysis,
-        "plan": integration,
-        "documentation": documentation
-    },
-    importance=1.0,
-    persona="seshat"
-)
+# Step 6: 結果の永続化
+/trinitas remember system_analysis "包括的分析完了" --importance 1.0
 ```
 
 ### Pattern 2: セキュリティ監査（Hestia主導）
-```python
+```bash
 # Hestia主導でセキュリティ監査を実施
-audit_result = mcp__trinitas-mcp__execute_persona(
-    persona="hestia",
-    task="包括的セキュリティ監査の実施",
-    context={
-        "scope": "payment-gateway",
-        "standards": ["PCI-DSS", "OWASP"],
-        "paranoia_level": "maximum"
-    }
-)
+/trinitas execute hestia "包括的セキュリティ監査の実施 (PCI-DSS, OWASP準拠)"
+
+# 監査結果をメモリに保存
+/trinitas remember security_audit_result "重大な脆弱性が3件発見" --importance 1.0
 
 # 他のペルソナによる補完分析
-complementary = mcp__trinitas-mcp__parallel_analyze(
-    task="セキュリティ監査結果の多角的検証",
-    personas=["artemis", "athena"],  # 技術と戦略の観点から
-    coordination_mode="sequential",
-    context={"audit": audit_result}
-)
+/trinitas analyze "セキュリティ監査結果の検証" --personas artemis,athena --mode sequential
 
 # Bellonaによる対応計画
-action_plan = mcp__trinitas-mcp__execute_persona(
-    persona="bellona",
-    task="セキュリティ問題の段階的解決計画",
-    context={
-        "issues": audit_result,
-        "validation": complementary,
-        "timeline": "1-week"
-    }
-)
+/trinitas execute bellona "セキュリティ問題の段階的解決計画策定"
+
+# 対応計画をドキュメント化
+/trinitas execute seshat "セキュリティ対応プランの文書化"
 ```
 
 ### Pattern 3: パフォーマンス最適化（Artemis主導）
-```python
+```bash
 # Artemis主導で最適化を実施
-optimization = mcp__trinitas-mcp__execute_persona(
-    persona="artemis",
-    task="極限のパフォーマンス最適化",
-    context={
-        "target": "api-endpoints",
-        "baseline": "current-metrics",
-        "goal": "10x-improvement"
-    }
-)
+/trinitas execute artemis "極限のパフォーマンス最適化 (10x改善目標)"
+
+# 最適化パターンを学習
+/trinitas learn performance_pattern "キャッシュ最適化で90%改善" --category optimization
 
 # 並列検証
-validation = mcp__trinitas-mcp__parallel_analyze(
-    task="最適化の影響を多角的に検証",
-    personas=["hestia", "athena"],  # セキュリティと戦略への影響
-    coordination_mode="parallel",
-    context={"optimizations": optimization}
-)
+/trinitas analyze "最適化の影響評価" --personas hestia,athena --mode parallel
 
 # 結果の記録
-mcp__trinitas-mcp__remember(
-    key="optimization_results",
-    value={
-        "improvements": optimization,
-        "validation": validation,
-        "timestamp": datetime.now()
-    },
-    importance=0.8,
-    persona="artemis"
-)
+/trinitas remember optimization_results "応答時間850%改善達成" --importance 0.8
+
+# レポート生成
+/trinitas report optimization
 ```
 
-## 🎭 実際のペルソナ応答例（MCP経由）
+## 🎭 実際のペルソナ応答例（/trinitasコマンド経由）
 
 ### Athena実行時の応答
-```python
-result = mcp__trinitas-mcp__execute_persona(
-    persona="athena",
-    task="新機能の戦略的評価"
-)
+```bash
+/trinitas execute athena "新機能の戦略的評価"
+
 # 応答: 
 # "ふふ、この機能追加は長期的な製品戦略と完璧に整合しますわ。
 #  段階的実装により、リスクを最小化しながら価値を最大化できます。
@@ -211,11 +161,9 @@ result = mcp__trinitas-mcp__execute_persona(
 ```
 
 ### 並列実行時の統合応答
-```python
-results = mcp__trinitas-mcp__parallel_analyze(
-    task="critical bug fix",
-    personas=["artemis", "hestia", "bellona"]
-)
+```bash
+/trinitas analyze "critical bug fix" --personas artemis,hestia,bellona --mode parallel
+
 # 統合応答:
 # Artemis: "バグの根本原因は非同期処理の競合状態。修正コード準備完了"
 # Hestia: "……この修正により新たなセキュリティホールは生じません……"
@@ -226,34 +174,22 @@ results = mcp__trinitas-mcp__parallel_analyze(
 ## 💾 メモリシステムの活用
 
 ### 長期プロジェクトサポート
-```python
+```bash
 # プロジェクト開始時
-mcp__trinitas-mcp__remember(
-    key="project_inception",
-    value={"requirements": requirements, "constraints": constraints},
-    importance=1.0,
-    persona="athena"
-)
+/trinitas remember project_inception "要件と制約の記録" --importance 1.0 --persona athena
 
-# 開発中の継続的学習
-for task in development_tasks:
-    result = mcp__trinitas-mcp__execute_persona(
-        persona=select_best_persona(task),
-        task=task,
-        context=mcp__trinitas-mcp__recall(
-            query=task.keywords,
-            semantic_search=True
-        )
-    )
-    
-    # 重要な決定を記録
-    if result.importance > 0.7:
-        mcp__trinitas-mcp__remember(
-            key=f"decision_{task.id}",
-            value=result,
-            importance=result.importance,
-            persona=result.persona
-        )
+# 開発中の継続的学習（ワークフローの例）
+# 1. 過去の知識を取得
+/trinitas recall "関連するキーワード" --semantic --persona athena
+
+# 2. タスクを実行
+/trinitas execute artemis "特定のタスクの実装"
+
+# 3. 重要な決定を記録
+/trinitas remember decision_001 "重要な技術的決定の内容" --importance 0.9 --persona artemis
+
+# 4. パターンを学習
+/trinitas learn optimization_pattern "最適化の成功パターン" --category performance
 ```
 
 ## ⚙️ 環境設定
@@ -271,14 +207,15 @@ GEMINI_API_KEY=your_key_here
 ```
 
 ### MCP Server接続確認
-```python
+```bash
 # テスト実行
-test_result = mcp__trinitas-mcp__execute_persona(
-    persona="athena",
-    task="システム接続テスト",
-    context={"test": True}
-)
-print(f"Connection status: {test_result}")
+/trinitas execute athena "システム接続テスト"
+
+# ステータス確認
+/trinitas status
+
+# メモリシステム状態確認
+/trinitas status memory
 ```
 
 ## 📊 実行メトリクス
@@ -291,9 +228,11 @@ print(f"Connection status: {test_result}")
 - **メモリ保存**: <50ms
 
 ### 実行統計の取得
-```python
-stats = mcp__trinitas-mcp__get_statistics()
-# Returns:
+```bash
+# 使用状況レポート
+/trinitas report usage
+
+# 返される統計情報:
 # {
 #   "total_executions": 1247,
 #   "persona_usage": {
@@ -311,31 +250,25 @@ stats = mcp__trinitas-mcp__get_statistics()
 ## 🚀 クイックスタートコマンド
 
 ### 1. システム全体分析
-```python
+```bash
 # 実際に実行可能なコマンド
-mcp__trinitas-mcp__parallel_analyze(
-    task="システム全体の包括的分析",
-    personas=["athena", "artemis", "hestia", "bellona", "seshat"],
-    coordination_mode="wave"
-)
+/trinitas analyze "システム全体の包括的分析" --personas all --mode wave
 ```
 
 ### 2. バグ修正支援
-```python
-mcp__trinitas-mcp__execute_persona(
-    persona="artemis",
-    task="バグの原因分析と修正案の提示",
-    context={"error": error_message, "stacktrace": stacktrace}
-)
+```bash
+/trinitas execute artemis "バグ#123の原因分析と修正案の提示"
+
+# または並列分析
+/trinitas analyze "バグ#123の包括的分析" --personas artemis,hestia --mode parallel
 ```
 
 ### 3. アーキテクチャ設計
-```python
-mcp__trinitas-mcp__execute_persona(
-    persona="athena",
-    task="マイクロサービスアーキテクチャの設計",
-    context={"requirements": requirements, "constraints": constraints}
-)
+```bash
+/trinitas execute athena "マイクロサービスアーキテクチャの設計"
+
+# 複数視点での検証
+/trinitas analyze "アーキテクチャ設計のレビュー" --personas athena,artemis,hestia --mode sequential
 ```
 
 ## 🔐 セーフティとガバナンス
@@ -346,23 +279,20 @@ mcp__trinitas-mcp__execute_persona(
 - 複雑な分析と実行 → trinitas-mcp
 
 ### 品質保証プロセス
-```python
+```bash
 # 全ての重要な決定は多角的検証を経る
-decision = mcp__trinitas-mcp__execute_persona(
-    persona="athena",
-    task="重要な技術的決定"
-)
 
-validation = mcp__trinitas-mcp__parallel_analyze(
-    task="決定の妥当性検証",
-    personas=["artemis", "hestia"],
-    context={"decision": decision}
-)
+# Step 1: 初期決定
+/trinitas execute athena "重要な技術的決定の立案"
 
-if validation.consensus_score > 0.8:
-    execute(decision)
-else:
-    reconsider(decision, validation.concerns)
+# Step 2: 多角的検証
+/trinitas analyze "決定の妥当性検証" --personas artemis,hestia --mode parallel
+
+# Step 3: 結果の記録
+/trinitas remember tech_decision_001 "検証済みの技術的決定" --importance 1.0
+
+# Step 4: 実装計画
+/trinitas execute bellona "決定に基づく実装計画の策定"
 ```
 
 ---

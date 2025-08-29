@@ -6,7 +6,7 @@ echo "Memory-focused MCP Implementation"
 echo "======================================"
 
 # Check Python version
-PYTHON_VERSION=$(python3 --version 2>&1 | grep -oP '\d+\.\d+')
+PYTHON_VERSION=$(python3 --version 2>&1 | grep -o '[0-9]\+\.[0-9]\+')
 REQUIRED_VERSION="3.10"
 
 if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
@@ -16,22 +16,30 @@ fi
 
 echo "✅ Python version check passed ($PYTHON_VERSION)"
 
-# Create virtual environment
-echo "Creating virtual environment..."
+# Check if uv is installed
+if ! command -v uv &> /dev/null; then
+    echo "Installing UV package manager..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    source $HOME/.cargo/env
+fi
+
+echo "✅ UV is installed"
+
+# Clean up any broken venv if it exists
 if [ -d ".venv" ]; then
-    echo "  Removing existing .venv..."
+    echo "Removing existing virtual environment..."
     rm -rf .venv
 fi
 
-python3 -m venv .venv
-source .venv/bin/activate
+# Create fresh virtual environment with uv
+echo "Creating fresh Python virtual environment..."
+uv venv
 
-# Install dependencies
-echo "Installing dependencies..."
-pip install --quiet --upgrade pip
-pip install --quiet fastmcp==2.11.3
-pip install --quiet redis chromadb sqlite-utils
-pip install --quiet python-dotenv numpy
+# Install dependencies with uv
+echo "Installing dependencies with UV..."
+uv pip install --quiet fastmcp==2.11.3
+uv pip install --quiet redis chromadb sqlite-utils
+uv pip install --quiet python-dotenv numpy
 
 # Create necessary directories
 echo "Creating directory structure..."
@@ -99,8 +107,8 @@ echo "✅ Trinitas v4.0 installation complete"
 echo "======================================"
 echo ""
 echo "To start the MCP server:"
-echo "  python3 src/mcp_server_v4.py"
+echo "  uv run python src/mcp_server_v4.py"
 echo ""
 echo "Configuration file: config/.env"
-echo "Test suite: python3 test_v4.py"
+echo "Test suite: uv run python test_v4.py"
 echo ""

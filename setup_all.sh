@@ -1,5 +1,5 @@
 #!/bin/bash
-# Trinitas v3.5 Complete Setup Script
+# Trinitas v4.0 Complete Setup Script
 # trinitas-mcpを~/.claude/trinitas/にインストール
 
 set -e  # エラーで停止
@@ -13,7 +13,7 @@ CYAN='\033[0;96m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}================================================${NC}"
-echo -e "${BLUE}  Trinitas v3.5 - Complete Setup${NC}"
+echo -e "${BLUE}  Trinitas v4.0 - Complete Setup${NC}"
 echo -e "${BLUE}================================================${NC}"
 
 # プロジェクトルート取得
@@ -76,16 +76,18 @@ uv venv
 echo -e "${BLUE}Installing dependencies with UV...${NC}"
 uv sync
 
-# Install FastMCP for new server implementation
-echo -e "${BLUE}Installing FastMCP...${NC}"
-uv pip install fastmcp
-echo -e "${GREEN}✓${NC} FastMCP installed"
+# Install FastMCP and other v4.0 dependencies
+echo -e "${BLUE}Installing FastMCP and v4.0 dependencies...${NC}"
+uv pip install fastmcp==2.11.3
+uv pip install redis chromadb sqlite-utils
+uv pip install python-dotenv numpy
+echo -e "${GREEN}✓${NC} v4.0 dependencies installed"
 
 # Create .env file from template if not exists
 if [ ! -f ".env" ]; then
     echo -e "${BLUE}Creating .env configuration file...${NC}"
     cat > .env << 'EOF'
-# Trinitas v3.5 Environment Configuration
+# Trinitas v4.0 Environment Configuration
 # すべての環境変数をファイルで管理（OS環境を汚染しない）
 
 # Naming Mode
@@ -162,7 +164,8 @@ cat > /tmp/trinitas_mcp_config.json << EOF
         "--directory",
         "$MCP_TOOLS_DIR",
         "run",
-        "trinitas-server"
+        "python",
+        "src/mcp_server_v4.py"
       ],
       "env": {
         "PYTHONPATH": "$MCP_TOOLS_DIR",
@@ -237,12 +240,12 @@ fi
 
 # Check MCP server
 cd "$MCP_TOOLS_DIR"
-if uv run python -c "from src.mcp_server_fastmcp import mcp; print('OK')" 2>/dev/null | grep -q 'OK'; then
-    echo -e "${GREEN}✓${NC} MCP Server ready (FastMCP)"
+if uv run python -c "from src.mcp_server_v4 import mcp; print('OK')" 2>/dev/null | grep -q 'OK'; then
+    echo -e "${GREEN}✓${NC} MCP Server v4.0 ready"
 else
-    # Fallback check for old implementation
-    if uv run python -c "from src.core.trinitas_mcp_tools import TrinitasMCPTools; print('OK')" 2>/dev/null | grep -q 'OK'; then
-        echo -e "${YELLOW}⚠${NC} MCP Tools ready (Legacy mode)"
+    # Fallback check for FastMCP implementation
+    if uv run python -c "from src.mcp_server_fastmcp import mcp; print('OK')" 2>/dev/null | grep -q 'OK'; then
+        echo -e "${GREEN}✓${NC} MCP Server ready (FastMCP)"
     else
         echo -e "${RED}✗${NC} MCP Server import failed"
     fi
