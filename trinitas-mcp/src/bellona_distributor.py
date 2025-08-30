@@ -45,11 +45,19 @@ class BellonaTaskDistributor:
             "distribution", {}
         ).get("priority_threshold", 0.3)
         
-        # 並列タスク管理
+        # 並列タスク管理 - Bellona戦術的拡張
         self.max_parallel_tasks = config.get("local_llm", {}).get(
             "distribution", {}
-        ).get("max_parallel_tasks", 3)
+        ).get("max_parallel_tasks", 8)  # 3→8に増強
         self.active_llm_tasks = []
+        
+        # 戦術的リソースプール
+        self.resource_pool = {
+            "memory_operations": 0,
+            "analysis_tasks": 0,
+            "optimization_tasks": 0
+        }
+        self.max_resource_per_type = 3
         
         # タスクタイプ定義
         self.llm_suitable_tasks = config.get("local_llm", {}).get(
@@ -61,7 +69,7 @@ class BellonaTaskDistributor:
             "data_transformation"
         ])
         
-        logger.info(f"Bellona初期化: LLM={'有効' if self.llm_enabled else '無効'}, 閾値={self.priority_threshold}")
+        logger.info(f"Bellona戦術システム初期化: LLM={'有効' if self.llm_enabled else '無効'}, 閾値={self.priority_threshold}, 並列度={self.max_parallel_tasks}")
     
     async def evaluate_task(self, task: str, context: Optional[Dict] = None) -> TaskDistribution:
         """
@@ -260,12 +268,32 @@ class BellonaTaskDistributor:
             logger.info(f"LLMタスクスロット解放: {task_id}")
     
     def get_status(self) -> Dict:
-        """Bellonaの現在状態を取得"""
+        """Bellonaの現在状態を取得 - 戦術的強化版"""
         return {
-            "mode": "llm_distribution" if self.llm_enabled else "memory_management",
+            "mode": "tactical_parallel" if self.llm_enabled else "memory_optimization",
             "llm_enabled": self.llm_enabled,
             "priority_threshold": self.priority_threshold,
             "active_llm_tasks": len(self.active_llm_tasks),
             "max_parallel_tasks": self.max_parallel_tasks,
-            "suitable_task_types": self.llm_suitable_tasks
+            "resource_pool": self.resource_pool,
+            "resource_utilization": {
+                "llm_slots": f"{len(self.active_llm_tasks)}/{self.max_parallel_tasks}",
+                "memory_ops": f"{self.resource_pool['memory_operations']}/{self.max_resource_per_type}",
+                "analysis": f"{self.resource_pool['analysis_tasks']}/{self.max_resource_per_type}"
+            },
+            "suitable_task_types": self.llm_suitable_tasks,
+            "tactical_mode": "bellona_v4_parallel"
         }
+    
+    def acquire_resource(self, resource_type: str) -> bool:
+        """戦術的リソース確保"""
+        if resource_type in self.resource_pool:
+            if self.resource_pool[resource_type] < self.max_resource_per_type:
+                self.resource_pool[resource_type] += 1
+                return True
+        return False
+    
+    def release_resource(self, resource_type: str):
+        """戦術的リソース解放"""
+        if resource_type in self.resource_pool and self.resource_pool[resource_type] > 0:
+            self.resource_pool[resource_type] -= 1

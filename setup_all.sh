@@ -45,6 +45,12 @@ fi
 echo -e "${BLUE}Copying MCP tools to $MCP_TOOLS_DIR...${NC}"
 cp -r "$PROJECT_ROOT/trinitas-mcp" "$MCP_TOOLS_DIR"
 
+# Copy .env file if it exists in config directory
+if [ -f "$PROJECT_ROOT/trinitas-mcp/config/.env" ]; then
+    cp "$PROJECT_ROOT/trinitas-mcp/config/.env" "$MCP_TOOLS_DIR/"
+    echo -e "${GREEN}✓${NC} Configuration file copied"
+fi
+
 # Remove restrictive Python version file if it exists
 rm -f "$MCP_TOOLS_DIR/.python-version" 2>/dev/null
 
@@ -136,16 +142,32 @@ fi
 echo -e "${BLUE}Installing minimal hooks to $HOOKS_DIR...${NC}"
 mkdir -p "$HOOKS_DIR/core"
 
-# Copy only essential files for protocol injection
-cp "$PROJECT_ROOT/hooks/core/protocol_injector.py" "$HOOKS_DIR/core/"
-cp "$PROJECT_ROOT/hooks/settings_minimal.json" "$HOOKS_DIR/settings.json"
-cp "$PROJECT_ROOT/hooks/.env" "$HOOKS_DIR/"
+# Copy only essential files for protocol injection (if they exist)
+if [ -f "$PROJECT_ROOT/hooks/core/protocol_injector.py" ]; then
+    cp "$PROJECT_ROOT/hooks/core/protocol_injector.py" "$HOOKS_DIR/core/"
+    chmod +x "$HOOKS_DIR/core/protocol_injector.py"
+    echo -e "${GREEN}✓${NC} Protocol injector installed"
+fi
 
-# Make Python script executable
-chmod +x "$HOOKS_DIR/core/protocol_injector.py"
+if [ -f "$PROJECT_ROOT/hooks/settings_minimal.json" ]; then
+    cp "$PROJECT_ROOT/hooks/settings_minimal.json" "$HOOKS_DIR/settings.json"
+fi
 
-echo -e "${GREEN}✓${NC} Minimal hooks installed (protocol injection only)"
-echo -e "${BLUE}ℹ${NC} All other functionality handled by trinitas-mcp"
+if [ -f "$PROJECT_ROOT/hooks/.env" ]; then
+    cp "$PROJECT_ROOT/hooks/.env" "$HOOKS_DIR/"
+fi
+
+echo -e "${GREEN}✓${NC} Minimal hooks configured"
+echo -e "${BLUE}ℹ${NC} All main functionality handled by trinitas-mcp"
+
+# Install Trinitas custom command (if available)
+COMMANDS_DIR="$CLAUDE_HOME/commands"
+if [ -f "$PROJECT_ROOT/trinitas-mcp/.claude/commands/trinitas.md" ]; then
+    echo -e "${BLUE}Installing /trinitas custom command...${NC}"
+    mkdir -p "$COMMANDS_DIR"
+    cp "$PROJECT_ROOT/trinitas-mcp/.claude/commands/trinitas.md" "$COMMANDS_DIR/"
+    echo -e "${GREEN}✓${NC} /trinitas command installed"
+fi
 
 # ===========================
 # Part 4: MCP Registration
@@ -164,8 +186,7 @@ cat > /tmp/trinitas_mcp_config.json << EOF
         "--directory",
         "$MCP_TOOLS_DIR",
         "run",
-        "python",
-        "src/mcp_server_v4.py"
+        "trinitas-v4"
       ],
       "env": {
         "PYTHONPATH": "$MCP_TOOLS_DIR",

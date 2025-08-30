@@ -373,20 +373,31 @@ class LocalLLMManager:
         """キューを処理"""
         while True:
             try:
-                task_data = await self.task_queue.get()
+                # Add timeout to prevent infinite waiting
+                task_data = await asyncio.wait_for(
+                    self.task_queue.get(),
+                    timeout=60.0  # 60 second timeout
+                )
                 task_id = task_data["id"]
                 task = task_data["task"]
                 context = task_data.get("context")
                 
-                # Process task
-                result = await self.primary_client.process_task(task, context)
+                # Process task with timeout
+                result = await asyncio.wait_for(
+                    self.primary_client.process_task(task, context),
+                    timeout=300.0  # 5 minute timeout for processing
+                )
                 
                 # Store result
                 self.results[task_id] = result
                 
                 logger.info(f"Processed queued task: {task_id}")
                 
+            except asyncio.TimeoutError:
+                logger.debug("Queue timeout - no tasks waiting")
+                await asyncio.sleep(1)  # Brief pause before retrying
             except asyncio.CancelledError:
+                logger.info("Queue processing cancelled")
                 break
             except Exception as e:
                 logger.error(f"Queue processing error: {e}")

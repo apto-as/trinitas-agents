@@ -23,6 +23,7 @@ from seshat_monitor import SeshatMemoryMonitor
 from memory_manager_v4 import EnhancedMemoryManager
 from learning_system import LearningSystem
 from local_llm_client import LocalLLMClient, LocalLLMManager
+from security_utils import sanitize_error
 
 # Load environment variables
 load_dotenv(Path(__file__).parent.parent / "config" / ".env")
@@ -106,48 +107,52 @@ class TrinitasV4Core:
     
     async def process_with_memory(self, persona: str, task: str, context: Optional[Dict] = None) -> Dict:
         """
-        Process task with memory context
-        メモリコンテキストを使用してタスクを処理
+        Process task with memory context - Bellona's Tactical Parallel Execution
+        戦術的並列実行によるメモリコンテキスト処理
         """
         start_time = datetime.now()
         
         try:
-            # Seshat monitors memory usage
-            usage_pattern = await self.seshat_monitor.analyze_usage_pattern(persona, task, context)
-            logger.info(f"Seshat analysis: {usage_pattern['optimization_suggestions']}")
+            # === PHASE 1: 並列初期分析 (戦術的最適化) ===
+            parallel_tasks = await asyncio.gather(
+                # Seshat: バックグラウンドで使用パターンを軽量分析
+                self._lightweight_usage_analysis(persona, task, context),
+                # Memory Manager: コンテキスト取得を並列実行
+                self.memory_manager.get_context(persona, task),
+                # Bellona: タスク評価を非同期実行
+                self.bellona_distributor.evaluate_task(task, context),
+                return_exceptions=True
+            )
             
-            # Retrieve relevant memories
-            memory_context = await self.memory_manager.get_context(persona, task)
+            # 結果の安全な展開
+            usage_pattern, memory_context, distribution = self._safe_unpack_results(parallel_tasks)
             
-            # Bellona's task distribution decision
-            distribution = await self.bellona_distributor.evaluate_task(task, context)
-            
-            if distribution.send_to_llm and self.local_llm_enabled:
-                logger.info(f"Bellona decision: Sending to Local LLM - {distribution.reason}")
+            # === PHASE 2: 実行決定とタスク処理 ===
+            if distribution and distribution.send_to_llm and self.local_llm_enabled:
+                logger.info(f"Bellona decision: LLM処理 - {distribution.reason}")
                 result = await self._process_with_local_llm(task, distribution, memory_context)
             else:
-                if not self.local_llm_enabled:
-                    # When LLM is OFF, Bellona manages memory with Seshat
-                    await self.bellona_distributor.optimize_memory_with_seshat(
-                        self.memory_manager, 
-                        self.seshat_monitor
-                    )
+                # 並列メモリ最適化（ブロックしない）
+                if not self.local_llm_enabled and distribution:
+                    asyncio.create_task(self._background_memory_optimization())
                 
-                # Process with main system
+                # メインシステムで実行
                 result = await self._execute_persona_task(persona, task, memory_context)
             
-            # Learn from execution
-            if self.config["learning"]["auto_learn"]:
-                await self.learning_system.learn_from_execution(persona, task, result)
+            # === PHASE 3: 並列後処理 ===
+            post_processing = await asyncio.gather(
+                # 学習システム（バックグラウンド処理可能）
+                self._background_learning(persona, task, result) if self.config["learning"]["auto_learn"] else self._dummy_task(),
+                # メモリ結果保存
+                self.memory_manager.store_result(persona, task, result),
+                return_exceptions=True
+            )
             
-            # Store result in memory
-            await self.memory_manager.store_result(persona, task, result)
+            # LLMタスクスロット解放（非同期）
+            if distribution and distribution.send_to_llm:
+                asyncio.create_task(self.bellona_distributor.release_task(distribution.task_id))
             
-            # Release LLM task slot if used
-            if distribution.send_to_llm:
-                await self.bellona_distributor.release_task(distribution.task_id)
-            
-            # Calculate execution time
+            # 実行時間計算
             execution_time = (datetime.now() - start_time).total_seconds()
             
             return {
@@ -155,21 +160,23 @@ class TrinitasV4Core:
                 "persona": persona,
                 "result": result,
                 "distribution": {
-                    "processor": distribution.assigned_processor,
-                    "priority": distribution.priority
+                    "processor": distribution.assigned_processor if distribution else "main",
+                    "priority": distribution.priority if distribution else 0.5
                 },
-                "memory_usage": usage_pattern,
+                "memory_usage": usage_pattern or {},
                 "execution_time_seconds": execution_time,
-                "timestamp": start_time.isoformat()
+                "timestamp": start_time.isoformat(),
+                "parallel_optimization": True  # Bellonaの並列処理マーク
             }
             
         except Exception as e:
-            logger.error(f"Error in process_with_memory: {e}")
+            logger.error(f"Bellona tactical error in process_with_memory: {e}")
             return {
                 "success": False,
-                "error": str(e),
+                "error": sanitize_error(e),
                 "persona": persona,
-                "task": task[:100]  # Truncate for safety
+                "task": task[:100],
+                "execution_mode": "tactical_parallel"
             }
     
     async def _process_with_local_llm(self, task: str, distribution: TaskDistribution, context: Dict) -> Dict:
@@ -224,6 +231,67 @@ class TrinitasV4Core:
             "context_used": bool(context),
             "memory_sections": list(context.keys()) if context else []
         }
+    
+    # === Bellona's Tactical Helper Methods ===
+    
+    async def _lightweight_usage_analysis(self, persona: str, task: str, context: Optional[Dict] = None) -> Dict:
+        """軽量な使用パターン分析（循環回避版）"""
+        try:
+            # Seshatの重い分析を回避し、キャッシュされたデータを使用
+            if hasattr(self.seshat_monitor, 'pattern_cache') and self.seshat_monitor.pattern_cache:
+                pattern_key = f"{persona}:{task[:50]}"  # タスク長制限
+                cached_patterns = len(self.seshat_monitor.pattern_cache.get(pattern_key, []))
+                
+                return {
+                    "access_time": datetime.now().isoformat(),
+                    "persona": persona,
+                    "task_type": self.seshat_monitor._classify_task(task),
+                    "optimization_suggestions": [f"キャッシュされたパターン{cached_patterns}個を活用"],
+                    "lightweight_analysis": True
+                }
+            else:
+                return {
+                    "access_time": datetime.now().isoformat(),
+                    "persona": persona,
+                    "optimization_suggestions": ["初回実行 - パターン収集中"],
+                    "lightweight_analysis": True
+                }
+        except Exception as e:
+            logger.warning(f"Lightweight analysis failed: {e}")
+            return {"lightweight_analysis": True, "error": sanitize_error(e)}
+    
+    def _safe_unpack_results(self, results: list) -> tuple:
+        """並列実行結果を安全に展開"""
+        usage_pattern = results[0] if not isinstance(results[0], Exception) else {}
+        memory_context = results[1] if not isinstance(results[1], Exception) else {}
+        distribution = results[2] if not isinstance(results[2], Exception) else None
+        
+        return usage_pattern, memory_context, distribution
+    
+    async def _background_memory_optimization(self):
+        """バックグラウンドでメモリ最適化（非ブロッキング）"""
+        try:
+            # Seshatから軽量レポートを取得
+            usage_report = {"total_accesses": self.seshat_monitor.access_count}
+            optimization_plan = self.bellona_distributor._create_optimization_plan(usage_report)
+            
+            # 軽量な最適化のみ実行
+            if optimization_plan["priority"] != "high":
+                await self.memory_manager.apply_optimizations(optimization_plan)
+                logger.info("バックグラウンド最適化完了")
+        except Exception as e:
+            logger.warning(f"Background optimization failed: {e}")
+    
+    async def _background_learning(self, persona: str, task: str, result: Dict):
+        """バックグラウンドで学習処理"""
+        try:
+            await self.learning_system.learn_from_execution(persona, task, result)
+        except Exception as e:
+            logger.warning(f"Background learning failed: {e}")
+    
+    async def _dummy_task(self):
+        """ダミータスク（並列処理の整合性用）"""
+        return {"status": "skipped"}
 
 # Initialize Trinitas Core
 trinitas_core = TrinitasV4Core()
@@ -273,8 +341,8 @@ async def memory_store(
     except Exception as e:
         logger.error(f"Memory store error: {e}")
         if ctx:
-            await ctx.error(f"Failed to store memory: {str(e)}")
-        return {"success": False, "error": str(e)}
+            await ctx.error(f"Failed to store memory: {sanitize_error(e)}")
+        return {"success": False, "error": sanitize_error(e)}
 
 @mcp.tool
 async def memory_recall(
@@ -316,8 +384,8 @@ async def memory_recall(
     except Exception as e:
         logger.error(f"Memory recall error: {e}")
         if ctx:
-            await ctx.error(f"Failed to recall memory: {str(e)}")
-        return {"success": False, "error": str(e)}
+            await ctx.error(f"Failed to recall memory: {sanitize_error(e)}")
+        return {"success": False, "error": sanitize_error(e)}
 
 @mcp.tool
 async def execute_with_memory(
@@ -354,8 +422,8 @@ async def execute_with_memory(
     except Exception as e:
         logger.error(f"Execution error: {e}")
         if ctx:
-            await ctx.error(f"Failed to execute: {str(e)}")
-        return {"success": False, "error": str(e)}
+            await ctx.error(f"Failed to execute: {sanitize_error(e)}")
+        return {"success": False, "error": sanitize_error(e)}
 
 @mcp.tool
 async def learning_apply(
@@ -393,8 +461,8 @@ async def learning_apply(
     except Exception as e:
         logger.error(f"Learning apply error: {e}")
         if ctx:
-            await ctx.error(f"Failed to apply pattern: {str(e)}")
-        return {"success": False, "error": str(e)}
+            await ctx.error(f"Failed to apply pattern: {sanitize_error(e)}")
+        return {"success": False, "error": sanitize_error(e)}
 
 @mcp.tool
 async def get_status(
@@ -435,8 +503,8 @@ async def get_status(
     except Exception as e:
         logger.error(f"Status error: {e}")
         if ctx:
-            await ctx.error(f"Failed to get status: {str(e)}")
-        return {"success": False, "error": str(e)}
+            await ctx.error(f"Failed to get status: {sanitize_error(e)}")
+        return {"success": False, "error": sanitize_error(e)}
 
 @mcp.tool
 async def generate_report(
@@ -476,8 +544,8 @@ async def generate_report(
     except Exception as e:
         logger.error(f"Report generation error: {e}")
         if ctx:
-            await ctx.error(f"Failed to generate report: {str(e)}")
-        return {"success": False, "error": str(e)}
+            await ctx.error(f"Failed to generate report: {sanitize_error(e)}")
+        return {"success": False, "error": sanitize_error(e)}
 
 def main():
     """Main entry point for v4.0 MCP server"""

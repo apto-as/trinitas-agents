@@ -107,9 +107,10 @@ class SeshatMemoryMonitor:
         pattern_key = f"{persona}:{task_type}"
         self.pattern_cache[pattern_key].append(pattern)
         
-        # 定期的にパターンを分析
-        if self.access_count % 100 == 0:
-            await self._analyze_patterns()
+        # 効率的なパターン分析（CPU負荷を軽減） - Bellona戦術的最適化
+        if self.access_count % 100 == 0 and self.access_count > 0:
+            # 循環参照を防ぐため、軽量版パターン分析のみ実行
+            asyncio.create_task(self._force_analyze_patterns())
         
         return {
             "access_time": analysis_start.isoformat(),
@@ -246,27 +247,54 @@ class SeshatMemoryMonitor:
         return suggestions
     
     async def _analyze_patterns(self):
-        """アクセスパターンを分析"""
-        # 最近の100アクセスを分析
-        recent_accesses = self.access_history[-100:] if len(self.access_history) > 100 else self.access_history
+        """アクセスパターンを分析 - 循環呼び出し防止版"""
+        # 直接 _force_analyze_patterns を呼び出さず、ステートチェック追加
+        if not hasattr(self, '_analyzing'):
+            self._analyzing = True
+            try:
+                await self._force_analyze_patterns()
+            finally:
+                self._analyzing = False
+    
+    async def _force_analyze_patterns(self):
+        """強制的にパターン分析を実行（循環呼び出し安全版）"""
+        # 最近の100アクセスを効率的に分析（インデックスベース）
+        history_len = len(self.access_history)
+        if history_len == 0:
+            self.identified_patterns = []
+            self.performance_bottlenecks = []
+            return
+            
+        # Convert deque to list for safe indexing
+        access_list = list(self.access_history)
+        
+        # メモリ効率的なアクセス（コピーしない）
+        start_idx = max(0, history_len - 100)
         
         # パターンを識別
         pattern_counts = defaultdict(int)
-        for access in recent_accesses:
+        slow_accesses = []
+        
+        # 単一ループで両方の処理を実行（効率化）
+        for i in range(start_idx, history_len):
+            access = access_list[i]
+            
+            # パターンカウント
             pattern = f"{access.persona}:{access.task_type}:{','.join(access.memory_sections[:3])}"
             pattern_counts[pattern] += 1
+            
+            # ボトルネック検出
+            if access.response_time_ms > 100:
+                slow_accesses.append(access)
         
         # 頻出パターンを記録
-        frequent_patterns = [
+        self.identified_patterns = [
             {"pattern": pattern, "count": count}
             for pattern, count in pattern_counts.items()
             if count > 5
         ]
         
-        self.identified_patterns = frequent_patterns
-        
-        # ボトルネックを検出
-        slow_accesses = [a for a in recent_accesses if a.response_time_ms > 100]
+        # ボトルネックを記録
         if slow_accesses:
             self.performance_bottlenecks = [
                 {
@@ -277,10 +305,15 @@ class SeshatMemoryMonitor:
                 }
                 for a in sorted(slow_accesses, key=lambda x: x.response_time_ms, reverse=True)[:5]
             ]
+        else:
+            self.performance_bottlenecks = []
     
     async def _identify_frequent_patterns(self) -> List[Dict]:
         """頻繁なパターンを識別"""
-        await self._analyze_patterns()
+        # 無限再帰を回避: _analyze_patterns()を直接呼ばず、既存結果を使用
+        if not self.identified_patterns:
+            # 初回のみパターンを強制分析
+            await self._force_analyze_patterns()
         return self.identified_patterns
     
     def _detect_bottlenecks(self) -> List[Dict]:
@@ -374,8 +407,10 @@ class SeshatMemoryMonitor:
         if not self.access_history:
             return 0.0
         
-        first = self.access_history[0].timestamp
-        last = self.access_history[-1].timestamp
+        # Convert deque to list for safe indexing
+        access_list = list(self.access_history)
+        first = access_list[0].timestamp
+        last = access_list[-1].timestamp
         
         return (last - first).total_seconds() / 3600
     
