@@ -1,8 +1,15 @@
-# Trinitas v3.5 - Trinity Intelligence System
+# Trinitas v4.0 - Trinity Intelligence System
 
 ## 🌟 Overview
 
-Trinitas v3.5 is an advanced AI development support system featuring **Claude Code Native Agents** with five specialized AI personas based on Greek/Roman/Egyptian mythology. The system provides **Athena (Strategic)**, **Artemis (Technical)**, **Hestia (Security)**, **Bellona (Tactical)**, and **Seshat (Documentation)** working together as a unified intelligence.
+Trinitas v4.0 is an advanced AI development support system featuring **MCP-based memory management** with five specialized AI personas based on Greek/Roman/Egyptian mythology. The system provides **Athena (Strategic)**, **Artemis (Technical)**, **Hestia (Security)**, **Eris (Distributed Processing)**, and **Muses (Memory Architecture)** working together as a unified intelligence.
+
+## 📚 Documentation
+
+All documentation is managed in Obsidian. Key documents:
+- [Complete Specification](obsidian://open?vault=Trinitas&file=COMPLETE_SPECIFICATION)
+- [Core Protocol](obsidian://open?vault=Trinitas&file=Core%2FTRINITAS-CORE-PROTOCOL)
+- [Architecture](obsidian://open?vault=Trinitas&file=Architecture%2FARCHITECTURE)
 
 ## ✨ Key Features
 
@@ -23,23 +30,24 @@ Trinitas v3.5 is an advanced AI development support system featuring **Claude Co
   - Risk management and threat modeling
   - Compliance verification and defensive programming
 
-- **Bellona** ⚔️: Tactical Coordinator
-  - Real-time operations management
-  - Multi-team synchronization
-  - Critical incident response
+- **Eris** ⚔️: Distributed Processor
+  - Parallel task management and distribution
+  - LLM routing and fallback strategies
+  - Resource optimization and load balancing
   
-- **Seshat** 📜: Knowledge Architect
-  - Documentation and knowledge management
-  - Technical writing and API documentation
-  - Learning materials development
+- **Muses** 📜: Memory Architects
+  - Tiered memory management (short/medium/long-term)
+  - Knowledge persistence and retrieval
+  - Learning pattern recognition
 
-### 🔄 Naming Modes
+### 🔄 System Architecture
 
-The system supports two naming modes:
-- **Mythology Mode** (Default): Athena, Artemis, Hestia, Bellona, Seshat
-- **Developer Mode** (Optional): Springfield, Krukai, Vector, Groza, Littara (from Dolls Frontline 2)
+The system operates in memory-focused mode:
+- **Mythology Mode** (Default): Athena, Artemis, Hestia, Eris, Muses
+- **MCP Server**: Memory management and persona coordination
+- **Headless Mode**: Automatic fallback when LocalLLM is disabled
 
-Set via environment variable: `TRINITAS_NAMING_MODE=mythology|developer`
+Set via environment variable: `TRINITAS_NAMING_MODE=mythology`
 
 ## 🚀 Installation
 
