@@ -50,11 +50,15 @@ class ErisLLMRouter:
         self.performance_stats = {}
         
     def _initialize_providers(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """プロバイダーを初期化"""
+        """プロバイダーを初期化
+        
+        LocalLLMが無効の場合、自動的にヘッドレスモードを有効化
+        """
         providers = {}
         
         # Local LLM設定
-        if config.get("local_llm", {}).get("enabled", False):
+        local_llm_enabled = config.get("local_llm", {}).get("enabled", False)
+        if local_llm_enabled:
             providers[LLMProvider.LOCAL_LLM] = {
                 "endpoint": config["local_llm"].get("endpoint", "http://localhost:1234/v1"),
                 "model": config["local_llm"].get("model", "auto"),
@@ -62,21 +66,40 @@ class ErisLLMRouter:
                 "available": True
             }
         
-        # Claude Code headless設定
-        if config.get("claude_code_headless", {}).get("enabled", False):
-            providers[LLMProvider.CLAUDE_CODE_HEADLESS] = {
-                "endpoint": config["claude_code_headless"].get("endpoint"),
-                "api_key": config["claude_code_headless"].get("api_key"),
-                "available": True
-            }
-        
-        # Qwen Code headless設定
-        if config.get("qwen_code_headless", {}).get("enabled", False):
-            providers[LLMProvider.QWEN_CODE_HEADLESS] = {
-                "endpoint": config["qwen_code_headless"].get("endpoint"),
-                "api_key": config["qwen_code_headless"].get("api_key"),
-                "available": True
-            }
+        # LocalLLMが無効の場合、ヘッドレスモードを自動有効化
+        if not local_llm_enabled:
+            # Claude Code headlessを優先的に有効化
+            if not config.get("claude_code_headless", {}).get("explicitly_disabled", False):
+                providers[LLMProvider.CLAUDE_CODE_HEADLESS] = {
+                    "endpoint": config.get("claude_code_headless", {}).get("endpoint", "http://localhost:8080/v1/claude"),
+                    "api_key": config.get("claude_code_headless", {}).get("api_key", "auto"),
+                    "available": True,
+                    "auto_enabled": True  # LocalLLM無効により自動有効化
+                }
+            
+            # Qwen Codeも補助として有効化
+            if not config.get("qwen_code_headless", {}).get("explicitly_disabled", False):
+                providers[LLMProvider.QWEN_CODE_HEADLESS] = {
+                    "endpoint": config.get("qwen_code_headless", {}).get("endpoint", "http://localhost:8081/v1/qwen"),
+                    "api_key": config.get("qwen_code_headless", {}).get("api_key", "auto"),
+                    "available": True,
+                    "auto_enabled": True  # LocalLLM無効により自動有効化
+                }
+        else:
+            # LocalLLM有効時でも、明示的に設定されていればヘッドレスモードも有効化
+            if config.get("claude_code_headless", {}).get("enabled", False):
+                providers[LLMProvider.CLAUDE_CODE_HEADLESS] = {
+                    "endpoint": config["claude_code_headless"].get("endpoint"),
+                    "api_key": config["claude_code_headless"].get("api_key"),
+                    "available": True
+                }
+            
+            if config.get("qwen_code_headless", {}).get("enabled", False):
+                providers[LLMProvider.QWEN_CODE_HEADLESS] = {
+                    "endpoint": config["qwen_code_headless"].get("endpoint"),
+                    "api_key": config["qwen_code_headless"].get("api_key"),
+                    "available": True
+                }
         
         return providers
     
@@ -93,7 +116,14 @@ class ErisLLMRouter:
                         task: str,
                         priority: float,
                         context: Optional[Dict[str, Any]] = None) -> TaskRoute:
-        """タスクを最適なプロバイダーへルーティング"""
+        """タスクを最適なプロバイダーへルーティング
+        
+        優先順位:
+        1. 重要タスク → メインClaude
+        2. 軽量タスク → LocalLLM (有効な場合)
+        3. LocalLLM無効時 → Claude/Qwen headless (フォールバック)
+        4. 全て無効 → メインClaude (最終フォールバック)
+        """
         
         # タスク分析
         analysis = await self._analyze_task(task, context)
@@ -103,23 +133,36 @@ class ErisLLMRouter:
             # 重要タスクはメインClaudeへ
             provider = LLMProvider.MAIN_CLAUDE
             reason = "Critical task requiring main Claude's capabilities"
-        elif analysis["estimated_tokens"] < self.routing_rules["token_threshold"] and \
-             LLMProvider.LOCAL_LLM in self.providers:
-            # 軽量タスクはローカルLLMへ
-            provider = LLMProvider.LOCAL_LLM
-            reason = "Lightweight task suitable for local LLM"
-        elif LLMProvider.CLAUDE_CODE_HEADLESS in self.providers:
-            # 中規模タスクはClaude Code headlessへ
-            provider = LLMProvider.CLAUDE_CODE_HEADLESS
-            reason = "Medium complexity task routed to Claude Code headless"
-        elif LLMProvider.QWEN_CODE_HEADLESS in self.providers:
-            # 代替としてQwen Codeへ
-            provider = LLMProvider.QWEN_CODE_HEADLESS
-            reason = "Task routed to Qwen Code as alternative"
+        elif analysis["estimated_tokens"] < self.routing_rules["token_threshold"]:
+            # 軽量タスクの処理
+            if LLMProvider.LOCAL_LLM in self.providers and \
+               await self._health_check(LLMProvider.LOCAL_LLM):
+                # LocalLLMが有効かつヘルシーな場合
+                provider = LLMProvider.LOCAL_LLM
+                reason = "Lightweight task suitable for local LLM"
+            elif LLMProvider.CLAUDE_CODE_HEADLESS in self.providers:
+                # LocalLLM無効時はClaude Code headlessへフォールバック
+                provider = LLMProvider.CLAUDE_CODE_HEADLESS
+                reason = "Local LLM unavailable, falling back to Claude Code headless"
+            elif LLMProvider.QWEN_CODE_HEADLESS in self.providers:
+                # Claude Codeも無効ならQwen Codeへ
+                provider = LLMProvider.QWEN_CODE_HEADLESS
+                reason = "Local LLM and Claude Code unavailable, falling back to Qwen Code"
+            else:
+                # 全て無効ならメインClaudeへ
+                provider = LLMProvider.MAIN_CLAUDE
+                reason = "All lightweight providers unavailable, using main Claude"
         else:
-            # フォールバック：メインClaudeへ
-            provider = LLMProvider.MAIN_CLAUDE
-            reason = "No alternative providers available"
+            # 中規模以上のタスク
+            if LLMProvider.CLAUDE_CODE_HEADLESS in self.providers:
+                provider = LLMProvider.CLAUDE_CODE_HEADLESS
+                reason = "Medium complexity task routed to Claude Code headless"
+            elif LLMProvider.QWEN_CODE_HEADLESS in self.providers:
+                provider = LLMProvider.QWEN_CODE_HEADLESS
+                reason = "Medium complexity task routed to Qwen Code headless"
+            else:
+                provider = LLMProvider.MAIN_CLAUDE
+                reason = "No headless providers available, using main Claude"
         
         return TaskRoute(
             task_id=self._generate_task_id(),

@@ -1,6 +1,8 @@
 """
-Eris Task Distributor for Trinitas v4.0
-分散処理とLocal LLMタスク振り分けシステム
+Eris Task Distributor for Trinitas v5.0
+分散処理とLLMルーティング統合システム
+
+LocalLLMがOFFの場合、自動的にClaude/Qwen Code headlessへフォールバック
 """
 
 import asyncio
@@ -28,14 +30,17 @@ class TaskDistribution:
     reason: str
     priority: float
     estimated_tokens: int
-    assigned_processor: str  # "main" or "llm"
+    assigned_processor: str  # "main", "local_llm", "claude_code", "qwen_code"
     metadata: Dict[str, Any]
 
 class ErisTaskDistributor:
     """
     Eris - 分散処理とタスク振り分け担当
-    Local LLM有効時: タスクの重要度を判定してLLMへ振り分け
-    Local LLM無効時: Musesと協調してメモリシステム管理
+    
+    動作モード:
+    1. Local LLM有効時: タスクの重要度を判定してLLMへ振り分け
+    2. Local LLM無効時: Claude/Qwen Code headlessへ自動フォールバック
+    3. 全て無効時: メインClaudeで処理
     """
     
     def __init__(self, config: Dict[str, Any]):
@@ -45,13 +50,17 @@ class ErisTaskDistributor:
             "distribution", {}
         ).get("priority_threshold", 0.3)
         
+        # LLMルーターを初期化
+        from .llm_router import ErisLLMRouter
+        self.llm_router = ErisLLMRouter(config)
+        
         # 並列タスク管理 - Eris分散処理拡張
         self.max_parallel_tasks = config.get("local_llm", {}).get(
             "distribution", {}
-        ).get("max_parallel_tasks", 8)  # 3→8に増強
+        ).get("max_parallel_tasks", 8)  # 最大8並列
         self.active_llm_tasks = []
         
-        # 戦術的リソースプール
+        # 分散処理リソースプール
         self.resource_pool = {
             "memory_operations": 0,
             "analysis_tasks": 0,
@@ -69,7 +78,12 @@ class ErisTaskDistributor:
             "data_transformation"
         ])
         
-        logger.info(f"Bellona戦術システム初期化: LLM={'有効' if self.llm_enabled else '無効'}, 閾値={self.priority_threshold}, 並列度={self.max_parallel_tasks}")
+        logger.info(
+            f"Eris分散システム初期化: "
+            f"LLM={'有効' if self.llm_enabled else '無効(ヘッドレスモード自動有効)'}, "
+            f"閾値={self.priority_threshold}, "
+            f"並列度={self.max_parallel_tasks}"
+        )
     
     async def evaluate_task(self, task: str, context: Optional[Dict] = None) -> TaskDistribution:
         """
@@ -89,211 +103,190 @@ class ErisTaskDistributor:
         importance = await self._calculate_importance(task, task_type, context)
         tokens = self._estimate_tokens(task)
         
-        # LLM無効時は常にMain処理
-        if not self.llm_enabled:
+        # LLMルーターを使用して最適なプロバイダーを決定
+        route = await self.llm_router.route_task(task, importance, context)
+        
+        # ルーティング結果に基づいて振り分け決定を生成
+        if route.provider.value == "main_claude":
             return TaskDistribution(
                 task_id=task_id,
                 send_to_llm=False,
-                reason="Local LLMが無効のため、メイン処理で実行",
+                reason=route.reason,
                 priority=importance,
                 estimated_tokens=tokens,
                 assigned_processor="main",
                 metadata={
                     "task_type": task_type,
-                    "llm_mode": "disabled"
+                    "provider": route.provider.value,
+                    "route_metadata": route.metadata
                 }
             )
-        
-        # 振り分け判定（LLM有効時）
-        send_to_llm = False
-        reason = ""
-        processor = "main"
-        
-        # 判定ロジック
-        if importance < self.priority_threshold:
-            if task_type in self.llm_suitable_tasks:
-                if len(self.active_llm_tasks) < self.max_parallel_tasks:
-                    send_to_llm = True
-                    processor = "llm"
-                    reason = f"低重要度タスク（{importance:.2f}）でLLM処理に適している"
-                else:
-                    reason = f"LLMタスクスロットが満杯（{len(self.active_llm_tasks)}/{self.max_parallel_tasks}）"
-            else:
-                reason = f"タスクタイプ'{task_type}'はLLM処理に不適"
+        elif route.provider.value == "local_llm":
+            return TaskDistribution(
+                task_id=task_id,
+                send_to_llm=True,
+                reason=route.reason,
+                priority=importance,
+                estimated_tokens=tokens,
+                assigned_processor="local_llm",
+                metadata={
+                    "task_type": task_type,
+                    "provider": route.provider.value,
+                    "route_metadata": route.metadata
+                }
+            )
         else:
-            reason = f"重要度（{importance:.2f}）が閾値（{self.priority_threshold}）を超えている"
-        
-        distribution = TaskDistribution(
-            task_id=task_id,
-            send_to_llm=send_to_llm,
-            reason=reason,
-            priority=importance,
-            estimated_tokens=tokens,
-            assigned_processor=processor,
-            metadata={
-                "task_type": task_type,
-                "active_llm_count": len(self.active_llm_tasks),
-                "timestamp": datetime.now().isoformat()
-            }
-        )
-        
-        # LLMタスクリストを更新
-        if send_to_llm:
-            self.active_llm_tasks.append(task_id)
-        
-        logger.info(f"Bellona判定: {processor}処理 - {reason}")
-        
-        return distribution
+            # ヘッドレスモード (claude_code or qwen_code)
+            return TaskDistribution(
+                task_id=task_id,
+                send_to_llm=True,  # ヘッドレスモードを使用
+                reason=f"Using {route.provider.value} headless mode",
+                priority=importance,
+                estimated_tokens=tokens,
+                assigned_processor=route.provider.value,
+                metadata={
+                    "task_type": task_type,
+                    "provider": route.provider.value,
+                    "headless_mode": True,
+                    "route_metadata": route.metadata
+                }
+            )
     
-    async def optimize_memory_with_seshat(self, memory_manager, seshat_monitor):
+    async def analyze_task(self, task: str) -> Dict[str, Any]:
         """
-        LLM無効時: Seshatと協調してメモリ最適化
-        
-        Args:
-            memory_manager: メモリマネージャーインスタンス
-            seshat_monitor: Seshatモニターインスタンス
+        タスクを分析してメタデータを生成
         """
-        logger.info("Bellona: LLM無効モード - Seshatとメモリ最適化開始")
+        distribution = await self.evaluate_task(task)
         
-        # Seshatから使用レポートを取得
-        usage_report = await seshat_monitor.get_usage_report()
+        # 現在のリソース状況を追加
+        resource_status = await self._get_resource_status()
         
-        # 最適化計画を作成
-        optimization_plan = self._create_optimization_plan(usage_report)
-        
-        # メモリマネージャーに適用
-        await memory_manager.apply_optimizations(optimization_plan)
-        
-        logger.info(f"メモリ最適化完了: {optimization_plan['summary']}")
+        return {
+            "task_id": distribution.task_id,
+            "distribution": distribution,
+            "resource_status": resource_status,
+            "parallel_capacity": self.max_parallel_tasks - len(self.active_llm_tasks),
+            "llm_router_status": await self.llm_router.get_provider_status()
+        }
     
     def _classify_task(self, task: str) -> str:
-        """タスクを分類"""
+        """タスクタイプを分類"""
         task_lower = task.lower()
         
-        if any(word in task_lower for word in ["ドキュメント", "文書", "doc", "readme"]):
-            return "documentation_generation"
-        elif any(word in task_lower for word in ["フォーマット", "整形", "format", "lint"]):
-            return "code_formatting"
-        elif any(word in task_lower for word in ["分析", "analyze", "review"]):
-            return "simple_analysis"
-        elif any(word in task_lower for word in ["変換", "transform", "convert"]):
-            return "data_transformation"
-        elif any(word in task_lower for word in ["最適化", "optimize", "performance"]):
+        if any(word in task_lower for word in ["doc", "document", "説明", "マニュアル"]):
+            return "documentation"
+        elif any(word in task_lower for word in ["format", "整形", "フォーマット"]):
+            return "formatting"
+        elif any(word in task_lower for word in ["analyze", "分析", "解析"]):
+            return "analysis"
+        elif any(word in task_lower for word in ["transform", "変換", "変更"]):
+            return "transformation"
+        elif any(word in task_lower for word in ["optimize", "最適化", "改善"]):
             return "optimization"
-        elif any(word in task_lower for word in ["セキュリティ", "security", "vulnerability"]):
-            return "security"
         else:
             return "general"
     
-    async def _calculate_importance(self, task: str, task_type: str, context: Optional[Dict]) -> float:
-        """
-        タスクの重要度を計算
+    async def _calculate_importance(self, 
+                                   task: str, 
+                                   task_type: str,
+                                   context: Optional[Dict] = None) -> float:
+        """タスクの重要度を計算"""
+        base_importance = 0.5
         
-        Returns:
-            0.0 (最低) から 1.0 (最高) の重要度
-        """
-        base_importance = {
-            "security": 0.9,
-            "optimization": 0.7,
-            "simple_analysis": 0.4,
-            "documentation_generation": 0.2,
-            "code_formatting": 0.2,
-            "data_transformation": 0.3,
-            "general": 0.5
-        }.get(task_type, 0.5)
+        # タスクタイプによる調整
+        type_weights = {
+            "documentation": -0.2,  # ドキュメントは低重要度
+            "formatting": -0.3,     # フォーマットは最低重要度
+            "analysis": 0.1,        # 分析は中重要度
+            "transformation": 0.0,  # 変換は標準
+            "optimization": 0.2,    # 最適化は高重要度
+            "general": 0.0
+        }
+        base_importance += type_weights.get(task_type, 0.0)
         
         # コンテキストによる調整
         if context:
-            if context.get("urgent", False):
-                base_importance = min(1.0, base_importance + 0.3)
-            if context.get("user_requested", False):
-                base_importance = min(1.0, base_importance + 0.2)
-            if context.get("automated", False):
-                base_importance = max(0.0, base_importance - 0.2)
+            if context.get("is_production", False):
+                base_importance += 0.3
+            if context.get("is_critical", False):
+                base_importance = max(base_importance, 0.9)
+            if context.get("user_priority"):
+                base_importance = context["user_priority"]
         
-        return base_importance
+        # 範囲を0.0-1.0に制限
+        return max(0.0, min(1.0, base_importance))
     
     def _estimate_tokens(self, task: str) -> int:
         """トークン数を推定"""
-        # 簡易推定: 1文字 ≈ 0.5トークン（日本語）、1単語 ≈ 1.3トークン（英語）
-        char_count = len(task)
-        word_count = len(task.split())
-        
-        # 混在を考慮
-        estimated = int((char_count * 0.5 + word_count * 1.3) / 2)
-        return estimated
+        # 簡易推定: 1単語 ≈ 1.3トークン
+        words = len(task.split())
+        return int(words * 1.3)
     
     def _generate_task_id(self) -> str:
         """ユニークなタスクIDを生成"""
         from uuid import uuid4
-        return f"task_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid4())[:8]}"
+        return f"eris_task_{uuid4().hex[:8]}"
     
-    def _create_optimization_plan(self, usage_report: Dict) -> Dict:
-        """メモリ最適化計画を作成"""
-        plan = {
-            "summary": "",
-            "actions": [],
-            "priority": "medium"
-        }
-        
-        # 使用パターンから最適化を決定
-        if usage_report.get("total_accesses", 0) > 1000:
-            plan["actions"].append({
-                "type": "cache_expansion",
-                "reason": "高頻度アクセス検出"
-            })
-        
-        if usage_report.get("bottlenecks", []):
-            plan["actions"].append({
-                "type": "index_optimization",
-                "targets": usage_report["bottlenecks"]
-            })
-            plan["priority"] = "high"
-        
-        # 未使用メモリのクリーンアップ
-        if usage_report.get("unused_ratio", 0) > 0.3:
-            plan["actions"].append({
-                "type": "cleanup",
-                "threshold_days": 30
-            })
-        
-        plan["summary"] = f"{len(plan['actions'])}個の最適化アクション、優先度: {plan['priority']}"
-        
-        return plan
-    
-    async def release_task(self, task_id: str):
-        """LLMタスクスロットを解放"""
-        if task_id in self.active_llm_tasks:
-            self.active_llm_tasks.remove(task_id)
-            logger.info(f"LLMタスクスロット解放: {task_id}")
-    
-    def get_status(self) -> Dict:
-        """Bellonaの現在状態を取得 - 戦術的強化版"""
+    async def _get_resource_status(self) -> Dict[str, Any]:
+        """現在のリソース状況を取得"""
         return {
-            "mode": "tactical_parallel" if self.llm_enabled else "memory_optimization",
-            "llm_enabled": self.llm_enabled,
-            "priority_threshold": self.priority_threshold,
-            "active_llm_tasks": len(self.active_llm_tasks),
-            "max_parallel_tasks": self.max_parallel_tasks,
-            "resource_pool": self.resource_pool,
-            "resource_utilization": {
-                "llm_slots": f"{len(self.active_llm_tasks)}/{self.max_parallel_tasks}",
-                "memory_ops": f"{self.resource_pool['memory_operations']}/{self.max_resource_per_type}",
-                "analysis": f"{self.resource_pool['analysis_tasks']}/{self.max_resource_per_type}"
-            },
-            "suitable_task_types": self.llm_suitable_tasks,
-            "tactical_mode": "bellona_v4_parallel"
+            "active_tasks": len(self.active_llm_tasks),
+            "max_parallel": self.max_parallel_tasks,
+            "resource_usage": self.resource_pool,
+            "capacity": {
+                "available": self.max_parallel_tasks - len(self.active_llm_tasks),
+                "percentage": (1 - len(self.active_llm_tasks) / self.max_parallel_tasks) * 100
+            }
         }
     
-    def acquire_resource(self, resource_type: str) -> bool:
-        """戦術的リソース確保"""
-        if resource_type in self.resource_pool:
-            if self.resource_pool[resource_type] < self.max_resource_per_type:
-                self.resource_pool[resource_type] += 1
-                return True
-        return False
-    
-    def release_resource(self, resource_type: str):
-        """戦術的リソース解放"""
-        if resource_type in self.resource_pool and self.resource_pool[resource_type] > 0:
-            self.resource_pool[resource_type] -= 1
+    async def execute_distributed_task(self, 
+                                      task: str,
+                                      distribution: TaskDistribution) -> Dict[str, Any]:
+        """
+        分散タスクを実行
+        """
+        if distribution.assigned_processor in ["claude_code", "qwen_code", "local_llm"]:
+            # LLMルーター経由で実行
+            route_data = {
+                "task_id": distribution.task_id,
+                "provider": distribution.assigned_processor,
+                "reason": distribution.reason,
+                "estimated_tokens": distribution.estimated_tokens,
+                "priority": distribution.priority,
+                "metadata": distribution.metadata
+            }
+            
+            # TaskRouteオブジェクトを作成
+            from .llm_router import TaskRoute, LLMProvider
+            provider_map = {
+                "local_llm": LLMProvider.LOCAL_LLM,
+                "claude_code": LLMProvider.CLAUDE_CODE_HEADLESS,
+                "qwen_code": LLMProvider.QWEN_CODE_HEADLESS,
+                "main": LLMProvider.MAIN_CLAUDE
+            }
+            
+            route = TaskRoute(
+                task_id=distribution.task_id,
+                provider=provider_map[distribution.assigned_processor],
+                reason=distribution.reason,
+                estimated_tokens=distribution.estimated_tokens,
+                priority=distribution.priority,
+                metadata=distribution.metadata
+            )
+            
+            # 実行
+            result = await self.llm_router.execute_on_provider(
+                route=route,
+                prompt=task,
+                system_prompt="You are a helpful assistant specialized in the requested task."
+            )
+            
+            return result
+        else:
+            # メインClaudeで実行
+            return {
+                "provider": "main_claude",
+                "execute_locally": False,
+                "task": task,
+                "distribution": distribution.__dict__
+            }
