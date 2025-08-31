@@ -1,5 +1,5 @@
 """
-Seshat Memory Monitor for Trinitas v4.0
+Muses Memory Monitor for Trinitas v4.0
 メモリ使用パターン監視・分析システム
 """
 
@@ -37,7 +37,10 @@ class UsageReport:
     persona_usage: Dict[str, int]
     optimization_potential: float  # 0.0-1.0
 
-class SeshatMemoryMonitor:
+class MusesMemoryMonitor:
+    """
+    Muses - メモリ管理とグルーピング専門
+    記憶の整理、分類、最適化を担当
     """
     Seshat - メモリ使用監視担当
     いつ、どのようにメモリが使用されるかを監視・分析
@@ -45,6 +48,8 @@ class SeshatMemoryMonitor:
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
+        self.memory_groups = {}  # メモリグループ管理
+        self.access_patterns = []  # アクセスパターン記録
         self.reporting_interval = config.get("personas", {}).get(
             "seshat", {}
         ).get("reporting_interval", 300)  # デフォルト5分

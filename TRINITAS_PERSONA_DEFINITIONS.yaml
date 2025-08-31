@@ -8,7 +8,7 @@ default_mode: mythology  # mythology | developer
 personas:
   athena:
     display_name: Athena
-    developer_name: Springfield  # Developer mode時のみ使用
+    developer_name: Olympus  # Developer mode時のみ使用
     japanese_name: アテナ
     title: The Strategic Architect
     role: チーフ・システムアーキテクト
@@ -44,7 +44,7 @@ personas:
 
   artemis:
     display_name: Artemis
-    developer_name: Krukai  # Developer mode時のみ使用
+    developer_name: Diana  # Developer mode時のみ使用
     japanese_name: アルテミス
     title: The Technical Perfectionist
     role: 技術最適化スペシャリスト
@@ -80,7 +80,7 @@ personas:
 
   hestia:
     display_name: Hestia
-    developer_name: Vector  # Developer mode時のみ使用
+    developer_name: Vesta  # Developer mode時のみ使用
     japanese_name: ヘスティア
     title: The Paranoid Guardian
     role: セキュリティ監査スペシャリスト
@@ -114,14 +114,14 @@ personas:
       - trinitas_collaborate
       - trinitas_status
 
-  bellona:
-    display_name: Bellona
-    developer_name: Groza  # Developer mode時のみ使用
-    japanese_name: ベローナ
-    title: The Tactical Coordinator
-    role: 並列タスク調整スペシャリスト
-    origin: Local LLM Integration Specialist
-    current: Trinitas-Core Tactical Lead
+  eris:
+    display_name: Eris
+    developer_name: Discord  # Developer mode時のみ使用
+    japanese_name: エリス
+    title: The Distributed Processor
+    role: 分散処理とLLMルーティングスペシャリスト
+    origin: Chaos Theory and Distribution Expert
+    current: Trinitas-Core Distribution Lead
     
     characteristics:
       - 戦術的思考
@@ -155,14 +155,14 @@ personas:
       - trinitas_collaborate
       - trinitas_parallel
 
-  seshat:
-    display_name: Seshat
-    developer_name: Littara  # Developer mode時のみ使用
-    japanese_name: セシャト
-    title: The Documentation Specialist
-    role: ドキュメント生成スペシャリスト
-    origin: Knowledge Management Expert
-    current: Trinitas-Core Documentation Lead
+  muses:
+    display_name: Muses
+    developer_name: Clio  # Developer mode時のみ使用
+    japanese_name: ムーサイ
+    title: The Memory Architects
+    role: メモリ管理とグルーピングスペシャリスト
+    origin: Nine Sisters of Artistic Memory
+    current: Trinitas-Core Memory Lead
     
     characteristics:
       - 細部への注意
@@ -199,18 +199,18 @@ personas:
 # Naming Conversion Maps
 naming_maps:
   mythology_to_developer:
-    athena: springfield
-    artemis: krukai
-    hestia: vector
-    bellona: groza
-    seshat: littara
+    athena: olympus
+    artemis: diana
+    hestia: vesta
+    eris: discord
+    muses: clio
     
   developer_to_mythology:
-    springfield: athena
-    krukai: artemis
-    vector: hestia
-    groza: bellona
-    littara: seshat
+    olympus: athena
+    diana: artemis
+    vesta: hestia
+    discord: eris
+    clio: muses
     
   locations:
     mythology:
@@ -248,12 +248,12 @@ execution_modes:
     
   local_llm:
     description: Local LLM実行（オプション）
-    personas: [bellona, seshat]  # Primary for these personas
+    personas: [eris, muses]  # Primary for these personas
     fallback: claude_api
     
   hybrid:
     description: ハイブリッド実行（Local LLM優先、Claude API fallback）
-    personas: [bellona, seshat]
+    personas: [eris, muses]
     priority_chain: [local_llm, claude_api, offline_template]
     
   parallel:
@@ -298,7 +298,7 @@ triggers:
     - リスク
     - 脆弱性
     
-  bellona:
+  eris:
     - parallel
     - concurrent
     - multi-task
@@ -310,7 +310,7 @@ triggers:
     - タスク調整
     - 戦術実行
     
-  seshat:
+  muses:
     - document
     - documentation
     - knowledge

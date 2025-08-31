@@ -1,6 +1,6 @@
 """
-Bellona Task Distributor for Trinitas v4.0
-戦術的タスク振り分けシステム
+Eris Task Distributor for Trinitas v4.0
+分散処理とLocal LLMタスク振り分けシステム
 """
 
 import asyncio
@@ -31,11 +31,11 @@ class TaskDistribution:
     assigned_processor: str  # "main" or "llm"
     metadata: Dict[str, Any]
 
-class BellonaTaskDistributor:
+class ErisTaskDistributor:
     """
-    Bellona - 戦術的タスク振り分け担当
+    Eris - 分散処理とタスク振り分け担当
     Local LLM有効時: タスクの重要度を判定してLLMへ振り分け
-    Local LLM無効時: Seshatと協調してメモリシステム管理
+    Local LLM無効時: Musesと協調してメモリシステム管理
     """
     
     def __init__(self, config: Dict[str, Any]):
@@ -45,7 +45,7 @@ class BellonaTaskDistributor:
             "distribution", {}
         ).get("priority_threshold", 0.3)
         
-        # 並列タスク管理 - Bellona戦術的拡張
+        # 並列タスク管理 - Eris分散処理拡張
         self.max_parallel_tasks = config.get("local_llm", {}).get(
             "distribution", {}
         ).get("max_parallel_tasks", 8)  # 3→8に増強
