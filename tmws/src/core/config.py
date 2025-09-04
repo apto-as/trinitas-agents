@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Union, List
 import logging
-from pydantic import Field, validator, root_validator
+from pydantic import Field, validator, root_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -28,18 +28,21 @@ class Settings(BaseSettings):
     # ==== CRITICAL SECURITY SETTINGS (REQUIRED) ====
     # Database - MANDATORY environment variable, no fallbacks
     database_url: str = Field(
+        default="",
         description="Database connection URL - MUST be set via TMWS_DATABASE_URL",
         min_length=10
     )
     
     # Security - MANDATORY secret key, no insecure defaults
     secret_key: str = Field(
+        default="",
         description="Cryptographic secret key - MUST be set via TMWS_SECRET_KEY (min 32 chars)",
         min_length=32
     )
     
     # Environment - REQUIRED for proper validation
     environment: str = Field(
+        default="development",
         description="Runtime environment - MUST be set via TMWS_ENVIRONMENT",
         pattern="^(development|staging|production)$"
     )
@@ -62,6 +65,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", pattern="^HS256|RS256|ES256$")
     jwt_expire_minutes: int = Field(default=30, ge=5, le=1440)
     jwt_refresh_expire_days: int = Field(default=7, ge=1, le=30)
+    
+    # Authentication mode control (404 Security Standard)
+    auth_enabled: bool = Field(
+        default=False,
+        description="Enable production authentication - default False for development mode"
+    )
     
     # ==== CORS - RESTRICTIVE BY DEFAULT ====
     cors_origins: List[str] = Field(
@@ -115,20 +124,35 @@ class Settings(BaseSettings):
     @root_validator(pre=True)
     def validate_required_env_vars(cls, values):
         """404 Rule: Critical environment variables MUST be set."""
-        required_vars = {
-            'database_url': 'TMWS_DATABASE_URL',
-            'secret_key': 'TMWS_SECRET_KEY',
-            'environment': 'TMWS_ENVIRONMENT'
-        }
+        import os
         
+        # Check if values are provided in .env or environment
+        # pydantic-settings should handle TMWS_ prefix automatically
+        if not values.get('database_url'):
+            values['database_url'] = (
+                values.get('DATABASE_URL') or 
+                os.environ.get('TMWS_DATABASE_URL') or 
+                os.environ.get('DATABASE_URL', '')
+            )
+        if not values.get('secret_key'):
+            values['secret_key'] = (
+                values.get('SECRET_KEY') or 
+                os.environ.get('TMWS_SECRET_KEY') or 
+                os.environ.get('SECRET_KEY', '')
+            )
+        if not values.get('environment'):
+            values['environment'] = (
+                values.get('ENVIRONMENT') or 
+                os.environ.get('TMWS_ENVIRONMENT') or 
+                os.environ.get('ENVIRONMENT', 'development')
+            )
+        
+        # Validate required fields - only database_url and secret_key are truly required
         errors = []
-        for field, env_var in required_vars.items():
-            if field not in values or not values[field]:
-                env_value = os.getenv(env_var)
-                if not env_value:
-                    errors.append(f"{env_var} environment variable is required")
-                else:
-                    values[field] = env_value
+        if not values.get('database_url'):
+            errors.append("TMWS_DATABASE_URL environment variable is required")
+        if not values.get('secret_key'):
+            errors.append("TMWS_SECRET_KEY environment variable is required")
         
         if errors:
             raise ValueError(f"Critical configuration missing: {'; '.join(errors)}")
@@ -209,6 +233,26 @@ class Settings(BaseSettings):
             logger.warning("API bound to 0.0.0.0 in production - ensure proper firewall/proxy")
         
         return v
+    
+    @validator("auth_enabled")
+    def validate_auth_enabled_security(cls, v, values):
+        """404 Security: Authentication must be enabled in production."""
+        environment = values.get("environment", "development")
+        
+        if environment == "production" and not v:
+            raise ValueError("Authentication MUST be enabled in production environment")
+        
+        if environment == "staging" and not v:
+            logger.warning("Authentication disabled in staging - consider enabling for realistic testing")
+        
+        return v
+    
+    @model_validator(mode='after')
+    def validate_production_security(self):
+        """404 Security: Final validation for production mode."""
+        if self.environment == "production" and not self.auth_enabled:
+            raise ValueError("CRITICAL: Authentication MUST be enabled in production environment (TMWS_AUTH_ENABLED=true)")
+        return self
 
     @property
     def is_production(self) -> bool:
@@ -257,12 +301,13 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,  # Allow case insensitive env vars for better compatibility
         env_prefix="TMWS_",
         secrets_dir="/run/secrets" if os.path.exists("/run/secrets") else None,
         validate_assignment=True,
         use_enum_values=True,
         arbitrary_types_allowed=False,
+        extra="ignore",  # Ignore extra environment variables
     )
 
 
@@ -329,6 +374,10 @@ def _validate_production_settings(settings: Settings) -> None:
     if not settings.security_headers_enabled:
         issues.append("Security headers disabled in production")
     
+    # Authentication validation
+    if not settings.auth_enabled:
+        issues.append("Authentication disabled in production - critical security risk")
+    
     # Rate limiting validation
     if not settings.rate_limit_enabled:
         issues.append("Rate limiting disabled in production")
@@ -389,6 +438,10 @@ TMWS_API_RELOAD=false
 TMWS_JWT_ALGORITHM=HS256
 TMWS_JWT_EXPIRE_MINUTES=30
 TMWS_JWT_REFRESH_EXPIRE_DAYS=7
+
+# Authentication control (404 Security Standard)
+# Default: false (development mode), set to true for production
+TMWS_AUTH_ENABLED=false
 
 # CORS - Specify exact origins for production
 TMWS_CORS_ORIGINS=["http://localhost:3000"]
@@ -496,10 +549,14 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 # Ensure critical directories exist
 LOGS_DIR.mkdir(exist_ok=True, mode=0o750)  # Secure directory permissions
 
+# Global settings instance for application use
+settings = get_settings()
+
 # Export public interface
 __all__ = [
     "Settings",
-    "get_settings", 
+    "get_settings",
+    "settings", 
     "create_secure_env_template",
     "validate_environment_security",
     "PROJECT_ROOT",

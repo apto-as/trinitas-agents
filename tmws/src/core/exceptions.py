@@ -38,6 +38,11 @@ class ValidationException(TMWSException):
     pass
 
 
+class ValidationError(ValidationException):
+    """Alias for ValidationException for backward compatibility."""
+    pass
+
+
 class AuthenticationException(TMWSException):
     """Authentication errors."""
 

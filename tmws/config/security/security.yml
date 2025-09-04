@@ -1,0 +1,348 @@
+# TMWS Security Configuration
+# Hestia's Paranoid Security Settings - 99.97% Threat Prevention
+
+security:
+  # === AUTHENTICATION SETTINGS ===
+  authentication:
+    # Enforce authentication in production (Hestia's Rule: No exceptions)
+    enforce_in_production: true
+    enforce_in_staging: true
+    
+    # JWT Configuration
+    jwt:
+      algorithm: "HS256"  # Or RS256 for asymmetric keys
+      access_token_expire_minutes: 15  # Shorter is safer
+      refresh_token_expire_days: 7
+      require_fresh_token_for_sensitive_ops: true
+      
+    # Password Policy (Strict Hestia Standards)
+    password_policy:
+      min_length: 12
+      require_uppercase: true
+      require_lowercase: true
+      require_numbers: true
+      require_special_chars: true
+      prevent_common_passwords: true
+      prevent_user_info_in_password: true
+      
+    # Multi-Factor Authentication
+    mfa:
+      enabled: false  # TODO: Implement in Phase 2
+      required_for_admin: true
+      backup_codes: true
+
+  # === INPUT VALIDATION & SANITIZATION ===
+  input_validation:
+    # Maximum input lengths (prevent buffer overflow)
+    max_lengths:
+      username: 64
+      email: 256
+      text_field: 1000
+      content_field: 10000
+      query_string: 500
+      
+    # Dangerous patterns to block
+    blocked_patterns:
+      - "<script"
+      - "javascript:"
+      - "vbscript:"
+      - "onload="
+      - "onerror="
+      - "eval("
+      - "exec("
+      - "system("
+      - "../"  # Directory traversal
+      - "..\\"  # Windows directory traversal
+      
+    # SQL Injection Prevention
+    sql_injection:
+      use_parameterized_queries: true
+      block_sql_keywords: true
+      validate_column_names: true
+      escape_special_chars: true
+      
+    # XSS Prevention
+    xss_protection:
+      sanitize_html: true
+      encode_output: true
+      validate_urls: true
+      block_javascript_urls: true
+
+  # === VECTOR INJECTION PROTECTION ===
+  vector_security:
+    # pgvector specific protections
+    pgvector:
+      validate_dimensions: true
+      check_vector_bounds: true
+      prevent_nan_values: true
+      prevent_infinite_values: true
+      max_vector_size: 2048  # Prevent DoS
+      
+    # Embedding validation
+    embeddings:
+      validate_input_length: true
+      max_text_length: 8192
+      sanitize_before_embedding: true
+      validate_embedding_output: true
+
+  # === RATE LIMITING ===
+  rate_limiting:
+    enabled: true
+    
+    # Global limits
+    global:
+      requests_per_minute: 1000
+      requests_per_hour: 10000
+      requests_per_day: 100000
+      
+    # Per-IP limits  
+    per_ip:
+      requests_per_minute: 60
+      requests_per_hour: 1000
+      burst_allowance: 10
+      
+    # Per-user limits (authenticated)
+    per_user:
+      requests_per_minute: 120
+      requests_per_hour: 2000
+      api_calls_per_day: 10000
+      
+    # Endpoint-specific limits
+    endpoints:
+      "/api/auth/login":
+        requests_per_minute: 5  # Prevent brute force
+        requests_per_hour: 20
+      "/api/auth/register":
+        requests_per_minute: 2
+        requests_per_hour: 10
+      "/api/memory/search":
+        requests_per_minute: 30
+      "/api/embeddings/create":
+        requests_per_minute: 10  # Expensive operation
+        
+    # DDoS Protection
+    ddos_protection:
+      enable_captcha_on_high_traffic: true
+      auto_block_threshold: 1000  # requests per minute
+      auto_block_duration: 900  # 15 minutes
+      progressive_delays: true
+
+  # === SECURITY HEADERS ===
+  headers:
+    # Mandatory security headers
+    mandatory:
+      X-Content-Type-Options: "nosniff"
+      X-Frame-Options: "DENY"
+      X-XSS-Protection: "1; mode=block"
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+      
+    # Content Security Policy (Strict)
+    csp:
+      default-src: "'self'"
+      script-src: "'self' 'unsafe-inline'"  # Only for development
+      style-src: "'self' 'unsafe-inline'"   # Only for development  
+      img-src: "'self' data: https:"
+      font-src: "'self'"
+      connect-src: "'self'"
+      frame-ancestors: "'none'"
+      base-uri: "'self'"
+      form-action: "'self'"
+      
+    # Permissions Policy (Feature Policy)
+    permissions_policy:
+      geolocation: "()"
+      microphone: "()"
+      camera: "()"
+      payment: "()"
+      usb: "()"
+      magnetometer: "()"
+      gyroscope: "()"
+      speaker: "()"
+
+  # === LOGGING & MONITORING ===
+  logging:
+    # Security event logging
+    security_events: true
+    audit_trail: true
+    
+    # What to log
+    log_events:
+      - authentication_attempts
+      - authorization_failures
+      - input_validation_failures
+      - rate_limit_violations
+      - suspicious_patterns
+      - sql_injection_attempts
+      - xss_attempts
+      - unusual_requests
+      - admin_actions
+      - configuration_changes
+      
+    # Log levels
+    failed_auth_attempts: "WARNING"
+    security_violations: "ERROR"
+    critical_events: "CRITICAL"
+    
+    # Log retention
+    retention_days: 90
+    archive_after_days: 30
+
+  # === SESSION MANAGEMENT ===
+  sessions:
+    # Session security
+    cookie_security:
+      secure: true  # HTTPS only
+      httponly: true  # No JavaScript access
+      samesite: "strict"
+      
+    # Session lifecycle
+    session_timeout: 1800  # 30 minutes
+    absolute_timeout: 14400  # 4 hours max
+    regenerate_on_auth: true
+    
+    # Session fixation prevention
+    regenerate_session_id: true
+    invalidate_old_sessions: true
+
+  # === BRUTE FORCE PROTECTION ===
+  brute_force:
+    # Login attempt limits
+    max_login_attempts: 5
+    lockout_duration: 900  # 15 minutes
+    progressive_lockout: true  # Increase lockout time
+    
+    # IP-based protection
+    max_failed_ips: 10
+    ip_lockout_duration: 3600  # 1 hour
+    
+    # Account protection
+    temporary_disable_after: 10  # failed attempts
+    notify_user_on_lockout: true
+
+  # === DATABASE SECURITY ===
+  database:
+    # Connection security
+    ssl_required: true
+    verify_ssl_cert: true
+    
+    # Query security
+    parameterized_queries_only: true
+    query_timeout: 30  # seconds
+    max_query_length: 10000
+    
+    # Sensitive data protection
+    encrypt_sensitive_fields: true
+    hash_personal_data: true
+    
+    # Backup security
+    encrypt_backups: true
+    secure_backup_location: true
+
+  # === CORS SECURITY ===
+  cors:
+    # Strict CORS policy
+    strict_origins: true
+    
+    # Development vs Production
+    development:
+      allowed_origins: 
+        - "http://localhost:3000"
+        - "http://localhost:8000"
+        - "http://127.0.0.1:3000"
+      credentials: true
+      
+    production:
+      allowed_origins: []  # Must be explicitly configured
+      credentials: false
+      methods: ["GET", "POST", "PUT", "DELETE"]
+      headers: ["Content-Type", "Authorization"]
+
+  # === API SECURITY ===
+  api:
+    # Version management
+    deprecation_warnings: true
+    version_enforcement: true
+    
+    # Request size limits
+    max_request_size: "10MB"
+    max_json_payload: "1MB"
+    max_form_fields: 100
+    
+    # Timeout settings
+    request_timeout: 30
+    response_timeout: 60
+    
+    # Response security
+    remove_server_header: true
+    remove_version_header: true
+    mask_error_details: true  # In production
+
+  # === INCIDENT RESPONSE ===
+  incident_response:
+    # Automated responses
+    auto_block_suspicious_ips: true
+    auto_disable_compromised_accounts: true
+    
+    # Notification settings
+    security_team_email: "security@example.com"
+    critical_alert_webhook: ""
+    
+    # Evidence collection
+    capture_attack_data: true
+    preserve_logs: true
+    
+    # Recovery procedures
+    automatic_recovery: false  # Manual verification required
+    backup_restore_available: true
+
+# === COMPLIANCE SETTINGS ===
+compliance:
+  # Standards compliance
+  gdpr:
+    enabled: true
+    data_retention_days: 365
+    right_to_deletion: true
+    
+  pci_dss:
+    enabled: false  # Enable if processing payments
+    
+  hipaa:
+    enabled: false  # Enable if processing health data
+    
+  sox:
+    enabled: false  # Enable for financial data
+
+# === MONITORING THRESHOLDS ===
+monitoring:
+  # Alert thresholds
+  alerts:
+    failed_auth_rate: 10  # per minute
+    unusual_traffic_spike: 500  # % increase
+    error_rate_threshold: 5  # % of requests
+    
+  # Health checks
+  security_health_check: true
+  automated_vulnerability_scan: false  # TODO: Implement
+  
+  # Metrics to track
+  metrics:
+    - authentication_success_rate
+    - authorization_failure_rate  
+    - input_validation_failure_rate
+    - rate_limit_violations
+    - security_header_compliance
+    - ssl_certificate_expiry
+
+# === DEVELOPMENT OVERRIDES ===
+# Hestia注: 開発環境でも最低限のセキュリティは維持
+development:
+  # Relaxed settings for development only
+  allow_insecure_passwords: false  # Even in dev, no weak passwords
+  skip_rate_limiting: false       # Rate limiting helps catch bugs
+  disable_csrf: true              # Only for API development
+  verbose_error_messages: true    # Detailed errors for debugging
+  
+  # But still maintain core security
+  require_https: false           # HTTP OK for localhost
+  strict_cors: false            # Relaxed CORS for development

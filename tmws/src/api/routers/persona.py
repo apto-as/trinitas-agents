@@ -4,7 +4,7 @@ Persona management endpoints for TMWS.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -35,10 +35,10 @@ class PersonaResponse(BaseModel):
     total_tasks: int
     successful_tasks: int
     success_rate: float
-    average_response_time: float
-    created_at: str
-    updated_at: str
-    last_active_at: str
+    average_response_time: Optional[float]
+    created_at: datetime
+    updated_at: datetime
+    last_active_at: Optional[datetime]
     
     class Config:
         from_attributes = True
@@ -71,7 +71,27 @@ async def list_personas(
         result = await db.execute(query)
         personas = result.scalars().all()
         
-        return [PersonaResponse.from_orm(persona) for persona in personas]
+        return [
+            PersonaResponse(
+                id=str(persona.id),
+                name=persona.name,
+                type=persona.type.value if hasattr(persona.type, 'value') else persona.type,
+                role=persona.role.value if hasattr(persona.role, 'value') else persona.role,
+                display_name=persona.display_name,
+                description=persona.description,
+                specialties=persona.specialties,
+                capabilities=persona.capabilities,
+                is_active=persona.is_active,
+                total_tasks=persona.total_tasks,
+                successful_tasks=persona.successful_tasks,
+                success_rate=persona.success_rate,
+                average_response_time=persona.average_response_time,
+                created_at=persona.created_at,
+                updated_at=persona.updated_at,
+                last_active_at=persona.last_active_at
+            )
+            for persona in personas
+        ]
         
     except Exception as e:
         logger.error(f"Failed to list personas: {e}")

@@ -4,8 +4,10 @@ Middleware configuration for TMWS API.
 
 import logging
 import time
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Optional
 import uuid
+import json
+import hashlib
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,8 +16,17 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+try:
+    import redis.asyncio as redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    logger.warning("Redis not available, using in-memory rate limiting")
+
 from ..core.config import get_settings
 from .security import SecurityHeaders
+from ..security.audit_integration import log_security_event
+from ..security.audit_logger_async import SecurityEventType, SecurityEventSeverity
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -67,63 +78,137 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate limiting middleware."""
+class DistributedRateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    Distributed rate limiting middleware with Redis support.
+    Falls back to in-memory limiting if Redis is unavailable.
+    """
     
-    def __init__(self, app, calls: int = 100, period: int = 60):
+    def __init__(self, app, calls: int = 100, period: int = 60, redis_url: Optional[str] = None):
         super().__init__(app)
         self.calls = calls
         self.period = period
-        self.clients = {}
+        self.redis_url = redis_url or "redis://localhost:6379/0"
+        self.redis_client: Optional[redis.Redis] = None
+        self.fallback_clients = {}  # In-memory fallback
+        self.use_redis = REDIS_AVAILABLE
+        
+        if self.use_redis:
+            try:
+                self.redis_client = redis.from_url(
+                    self.redis_url,
+                    encoding="utf-8",
+                    decode_responses=True
+                )
+            except Exception as e:
+                logger.error(f"Failed to connect to Redis: {e}")
+                self.use_redis = False
+    
+    async def _check_rate_limit_redis(self, client_id: str) -> tuple[bool, int]:
+        """Check rate limit using Redis with sliding window."""
+        try:
+            key = f"rate_limit:{client_id}"
+            current_time = time.time()
+            window_start = current_time - self.period
+            
+            # Use Redis pipeline for atomic operations
+            async with self.redis_client.pipeline() as pipe:
+                # Remove old entries
+                await pipe.zremrangebyscore(key, 0, window_start)
+                # Count current entries
+                await pipe.zcard(key)
+                # Add current request
+                await pipe.zadd(key, {str(uuid.uuid4()): current_time})
+                # Set expiry
+                await pipe.expire(key, self.period)
+                
+                results = await pipe.execute()
+                request_count = results[1]
+                
+                if request_count >= self.calls:
+                    return False, 0
+                
+                return True, max(0, self.calls - request_count - 1)
+                
+        except Exception as e:
+            logger.error(f"Redis rate limit check failed: {e}")
+            # Fall back to in-memory
+            return await self._check_rate_limit_memory(client_id)
+    
+    async def _check_rate_limit_memory(self, client_id: str) -> tuple[bool, int]:
+        """Fallback in-memory rate limiting."""
+        current_time = time.time()
+        
+        # Clean old entries
+        self.fallback_clients = {
+            ip: times for ip, times in self.fallback_clients.items()
+            if times and times[-1] > current_time - self.period
+        }
+        
+        if client_id not in self.fallback_clients:
+            self.fallback_clients[client_id] = []
+        
+        # Remove old requests
+        self.fallback_clients[client_id] = [
+            req_time for req_time in self.fallback_clients[client_id]
+            if req_time > current_time - self.period
+        ]
+        
+        # Check if limit exceeded
+        if len(self.fallback_clients[client_id]) >= self.calls:
+            return False, 0
+        
+        # Add current request
+        self.fallback_clients[client_id].append(current_time)
+        remaining = max(0, self.calls - len(self.fallback_clients[client_id]))
+        
+        return True, remaining
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         if not settings.rate_limit_enabled:
             return await call_next(request)
         
+        # Generate client identifier
         client_ip = request.client.host if request.client else "unknown"
-        current_time = time.time()
-        
-        # Clean old entries
-        self.clients = {
-            ip: times for ip, times in self.clients.items()
-            if times[-1] > current_time - self.period
-        }
+        user_agent = request.headers.get("user-agent", "")
+        client_id = hashlib.md5(f"{client_ip}:{user_agent}".encode()).hexdigest()
         
         # Check rate limit
-        if client_ip in self.clients:
-            # Remove old requests outside the time window
-            self.clients[client_ip] = [
-                req_time for req_time in self.clients[client_ip]
-                if req_time > current_time - self.period
-            ]
-            
-            # Check if limit exceeded
-            if len(self.clients[client_ip]) >= self.calls:
-                logger.warning(f"Rate limit exceeded for IP: {client_ip}")
-                return Response(
-                    content="Rate limit exceeded",
-                    status_code=429,
-                    headers={
-                        "Retry-After": str(self.period),
-                        "X-RateLimit-Limit": str(self.calls),
-                        "X-RateLimit-Remaining": "0",
-                        "X-RateLimit-Reset": str(int(current_time + self.period)),
-                    }
-                )
+        if self.use_redis and self.redis_client:
+            allowed, remaining = await self._check_rate_limit_redis(client_id)
         else:
-            self.clients[client_ip] = []
+            allowed, remaining = await self._check_rate_limit_memory(client_id)
         
-        # Add current request
-        self.clients[client_ip].append(current_time)
+        if not allowed:
+            logger.warning(f"Rate limit exceeded for client: {client_id} (IP: {client_ip})")
+            
+            # Log security event asynchronously
+            await log_security_event(
+                event_type=SecurityEventType.RATE_LIMIT_EXCEEDED,
+                request=request,
+                severity=SecurityEventSeverity.MEDIUM,
+                details={"client_id": client_id, "client_ip": client_ip}
+            )
+            
+            return Response(
+                content=json.dumps({"error": "Rate limit exceeded"}),
+                status_code=429,
+                media_type="application/json",
+                headers={
+                    "Retry-After": str(self.period),
+                    "X-RateLimit-Limit": str(self.calls),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time() + self.period)),
+                }
+            )
         
         # Process request
         response = await call_next(request)
         
         # Add rate limit headers
-        remaining = max(0, self.calls - len(self.clients[client_ip]))
         response.headers["X-RateLimit-Limit"] = str(self.calls)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
-        response.headers["X-RateLimit-Reset"] = str(int(current_time + self.period))
+        response.headers["X-RateLimit-Reset"] = str(int(time.time() + self.period))
         
         return response
 
@@ -174,12 +259,14 @@ def setup_middleware(app: FastAPI) -> None:
     # 2. Security middleware
     app.add_middleware(SecurityMiddleware)
     
-    # 3. Rate limiting
+    # 3. Distributed Rate limiting with Redis
     if settings.rate_limit_enabled:
+        redis_url = getattr(settings, 'redis_url', None) or "redis://localhost:6379/0"
         app.add_middleware(
-            RateLimitMiddleware,
+            DistributedRateLimitMiddleware,
             calls=settings.rate_limit_requests,
-            period=settings.rate_limit_period
+            period=settings.rate_limit_period,
+            redis_url=redis_url
         )
     
     # 4. CORS middleware
@@ -216,8 +303,7 @@ def setup_middleware(app: FastAPI) -> None:
             session_cookie="tmws_session",
             max_age=1800,  # 30 minutes
             same_site=settings.session_cookie_samesite,
-            https_only=settings.session_cookie_secure,
-            httponly=settings.session_cookie_httponly
+            https_only=settings.session_cookie_secure
         )
     
     # 7. Gzip compression (should be last)

@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.config import get_settings
 from ...core.database import get_db_session_dependency, DatabaseHealthCheck
 from ..middleware import get_middleware_stats
-from ..app import get_app_info
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -78,7 +77,11 @@ async def detailed_health_check(
     
     # Application info
     try:
-        app_info = get_app_info()
+        app_info = {
+            "name": settings.api_title,
+            "version": settings.api_version,
+            "environment": settings.environment,
+        }
         health_status["checks"]["application"] = {
             "status": "healthy",
             "info": app_info
@@ -211,7 +214,11 @@ async def metrics_endpoint(
         pool_status = await DatabaseHealthCheck.get_pool_status()
         
         # Application metrics
-        app_info = get_app_info()
+        app_info = {
+            "name": settings.api_title,
+            "version": settings.api_version,
+            "environment": settings.environment,
+        }
         middleware_stats = get_middleware_stats()
         
         return {

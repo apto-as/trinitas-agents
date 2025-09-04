@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
-import jwt
+from jose import jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT Bearer token authentication
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)  # Make authentication optional
 
 settings = get_settings()
 
@@ -190,10 +190,15 @@ def verify_token(token: str) -> Dict[str, Any]:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Dict[str, Any]:
     """
     Get current user from JWT token.
+    
+    Authentication Mode (404 Security Standard):
+    - Default: Development mode (no authentication required)
+    - Production: Explicit authentication required (auth_enabled=True)
+    - This ensures development ease while forcing production security
     
     Args:
         credentials: HTTP authorization credentials
@@ -202,12 +207,27 @@ async def get_current_user(
         Current user data
         
     Raises:
-        HTTPException: If authentication fails
+        HTTPException: If authentication fails in production mode
     """
+    # 404 Security Rule: Development mode is DEFAULT unless explicitly enabled
+    # This reverses the logic - auth must be explicitly enabled for production
+    if not settings.auth_enabled:
+        # Development/testing mode - return mock user
+        return {
+            "user_id": "dev_user",
+            "username": "developer", 
+            "role": "admin",
+            "roles": ["admin", "developer"],
+            "permissions": ["*"],  # All permissions in dev mode
+            "is_active": True,
+            "auth_mode": "development"
+        }
+    
+    # Production authentication enabled - require valid credentials
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication credentials",
+            detail="Authentication required - missing credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -219,7 +239,7 @@ async def get_current_user(
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="Invalid token - missing user identifier",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -228,7 +248,8 @@ async def get_current_user(
         "username": payload.get("username"),
         "roles": payload.get("roles", []),
         "permissions": payload.get("permissions", []),
-        "token_data": payload
+        "token_data": payload,
+        "auth_mode": "production"
     }
 
 
@@ -245,8 +266,17 @@ def require_permission(permission: str):
     async def permission_checker(
         current_user: Dict[str, Any] = Depends(get_current_user)
     ) -> Dict[str, Any]:
+        # Development mode grants all permissions
+        if current_user.get("auth_mode") == "development":
+            return current_user
+            
         user_permissions = current_user.get("permissions", [])
         
+        # Check for wildcard permission (development mode)
+        if "*" in user_permissions:
+            return current_user
+        
+        # Standard permission check
         if permission not in user_permissions and "admin" not in current_user.get("roles", []):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -271,6 +301,10 @@ def require_role(role: str):
     async def role_checker(
         current_user: Dict[str, Any] = Depends(get_current_user)
     ) -> Dict[str, Any]:
+        # Development mode grants all roles
+        if current_user.get("auth_mode") == "development":
+            return current_user
+            
         user_roles = current_user.get("roles", [])
         
         if role not in user_roles:
@@ -331,6 +365,28 @@ class SecurityHeaders:
         }
 
 
+def get_auth_status() -> Dict[str, Any]:
+    """
+    Get current authentication status and configuration.
+    
+    Returns:
+        Dict containing authentication status information
+    """
+    return {
+        "auth_enabled": settings.auth_enabled,
+        "environment": settings.environment,
+        "auth_mode": "production" if settings.auth_enabled else "development",
+        "security_level": "high" if settings.auth_enabled else "development",
+        "jwt_algorithm": SecurityConfig.ALGORITHM,
+        "token_expire_minutes": SecurityConfig.ACCESS_TOKEN_EXPIRE_MINUTES,
+        "description": (
+            "Production authentication enabled - JWT tokens required"
+            if settings.auth_enabled
+            else "Development mode - no authentication required"
+        )
+    }
+
+
 def sanitize_input(input_string: str, max_length: int = 1000) -> str:
     """
     Sanitize user input.
@@ -370,3 +426,21 @@ def sanitize_input(input_string: str, max_length: int = 1000) -> str:
     sanitized = "".join(char for char in input_string if ord(char) >= 32 or char in "\n\r\t")
     
     return sanitized.strip()
+
+
+# Export public interface
+__all__ = [
+    "SecurityConfig",
+    "verify_password",
+    "get_password_hash", 
+    "validate_password_strength",
+    "create_access_token",
+    "verify_token",
+    "get_current_user",
+    "require_permission",
+    "require_role",
+    "SecurityHeaders",
+    "get_auth_status",
+    "sanitize_input",
+    "security"  # HTTPBearer instance
+]

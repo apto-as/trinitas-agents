@@ -1,0 +1,302 @@
+# TMWS Unified Server Configuration
+# Complete configuration for single-command startup
+# Enhanced with Tactical Coordination by Bellona
+
+server:
+  name: "TMWS Unified Server"
+  version: "1.0.0"
+  description: "Trinitas Memory & Workflow Service with Unified Architecture"
+  environment: "${TMWS_ENVIRONMENT:-development}"
+
+# Protocol Configuration
+protocols:
+  mcp:
+    enabled: true
+    stdio_mode: true  # For Claude Desktop integration
+    name: "tmws-unified"
+    description: "TMWS MCP Server for memory and workflow management"
+    tools:
+      - store_memory
+      - recall_memory
+      - persona_execute
+      - tactical_status
+      - tactical_command
+    
+  fastapi:
+    enabled: true
+    host: "0.0.0.0"
+    port: 8000
+    auto_reload: false  # Set true for development
+    workers: 1  # Single worker for unified mode
+    cors:
+      enabled: true
+      origins: ["*"]  # Configure for production
+      allow_credentials: true
+      allow_methods: ["*"]
+      allow_headers: ["*"]
+
+# Database Configuration
+database:
+  primary: "postgresql"
+  connection:
+    host: "${TMWS_DB_HOST:-localhost}"
+    port: "${TMWS_DB_PORT:-5432}"
+    database: "${TMWS_DB_NAME:-tmws}"
+    user: "${TMWS_DB_USER:-tmws_user}"
+    password: "${TMWS_DB_PASSWORD:-tmws_password}"
+  
+  # Connection Pool Settings
+  pool:
+    size: 10
+    max_overflow: 20
+    recycle: 3600
+    pre_ping: true
+    echo: false
+  
+  # PostgreSQL specific
+  postgresql:
+    statement_timeout: "30s"
+    lock_timeout: "10s"
+    idle_in_transaction_session_timeout: "60s"
+    jit: "off"
+
+# Memory System Configuration
+memory:
+  cache_size_mb: 100
+  cache_ttl_seconds: 300
+  persistence: true
+  
+  # Vector Search Configuration
+  vector:
+    model: "all-MiniLM-L6-v2"
+    dimension: 384
+    similarity_threshold: 0.7
+    max_results: 10
+  
+  # Redis Cache
+  redis:
+    enabled: true
+    host: "${REDIS_HOST:-localhost}"
+    port: "${REDIS_PORT:-6379}"
+    db: 0
+    ttl: 3600
+
+# Persona Configuration
+personas:
+  defaults:
+    - name: "athena"
+      type: "strategist"
+      role: "Strategic planning and architecture"
+      active: true
+    
+    - name: "artemis"
+      type: "optimizer"
+      role: "Performance optimization and quality"
+      active: true
+    
+    - name: "hestia"
+      type: "auditor"
+      role: "Security and risk assessment"
+      active: true
+    
+    - name: "bellona"
+      type: "coordinator"
+      role: "Tactical coordination and parallelization"
+      active: true
+    
+    - name: "seshat"
+      type: "documenter"
+      role: "Documentation and knowledge management"
+      active: true
+
+# Security Configuration
+security:
+  auth_enabled: false  # Default to development mode
+  jwt_secret_key: "${TMWS_SECRET_KEY:-dev-secret-key-change-in-production}"
+  jwt_algorithm: "HS256"
+  jwt_expiration_hours: 24
+  
+  # Rate Limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    requests_per_hour: 1000
+  
+  # CORS Settings (production)
+  cors_origins: ["http://localhost:3000", "https://your-domain.com"]
+  
+  # API Key Authentication (optional)
+  api_keys:
+    enabled: false
+    keys: []  # Add API keys in production
+
+# Tactical Coordination (Bellona)
+tactical:
+  enabled: true
+  mode: "peacetime"  # peacetime, alert, critical, maintenance
+  
+  # Health Monitoring
+  health_check:
+    interval: 15  # seconds
+    timeout: 5
+    retries: 3
+  
+  # Performance Monitoring
+  metrics:
+    collection_interval: 30  # seconds
+    retention_days: 7
+  
+  # Auto-recovery
+  recovery:
+    enabled: true
+    max_restarts: 3
+    restart_delay: 10  # seconds
+  
+  # Resource Limits
+  resources:
+    mcp_max_memory_mb: 256
+    api_max_memory_mb: 512
+    max_cpu_percent: 80
+  
+  # Alert Thresholds
+  alerts:
+    cpu_threshold: 80.0
+    memory_threshold: 85.0
+    error_rate_threshold: 5.0
+    response_time_ms: 1000
+
+# Logging Configuration
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "structured"  # structured, json, simple
+  
+  # File Logging
+  file:
+    enabled: true
+    path: "./logs/tmws.log"
+    max_size_mb: 100
+    backup_count: 5
+    rotation: "daily"
+  
+  # Console Logging
+  console:
+    enabled: true
+    colorize: true
+  
+  # Log Levels by Module
+  modules:
+    tmws: "INFO"
+    sqlalchemy: "WARNING"
+    uvicorn: "INFO"
+    mcp: "INFO"
+    tactical: "DEBUG"
+
+# Monitoring and Telemetry
+monitoring:
+  enabled: false
+  
+  # Prometheus Metrics
+  prometheus:
+    enabled: false
+    port: 9090
+    path: "/metrics"
+  
+  # OpenTelemetry
+  opentelemetry:
+    enabled: false
+    endpoint: "http://localhost:4317"
+    service_name: "tmws-unified"
+
+# Development Settings
+development:
+  debug: true
+  hot_reload: true
+  verbose_errors: true
+  mock_external_services: false
+  
+  # Test Database
+  test_database:
+    enabled: false
+    url: "sqlite:///./test.db"
+
+# Production Settings  
+production:
+  debug: false
+  hot_reload: false
+  verbose_errors: false
+  
+  # SSL Configuration
+  ssl:
+    enabled: false
+    cert_file: "/path/to/cert.pem"
+    key_file: "/path/to/key.pem"
+  
+  # Backup Configuration
+  backup:
+    enabled: false
+    schedule: "0 2 * * *"  # 2 AM daily
+    retention_days: 30
+    path: "/backups/tmws"
+
+# Integration Settings
+integrations:
+  # Local LLM (for Bellona's routing)
+  local_llm:
+    enabled: false
+    endpoint: "${LOCAL_LLM_ENDPOINT:-http://localhost:1234/v1}"
+    model: "${LOCAL_LLM_MODEL:-auto}"
+    timeout: 30
+  
+  # External APIs
+  external_apis:
+    timeout: 10
+    retry_count: 3
+    retry_delay: 1
+
+# Startup Configuration
+startup:
+  # Initialization sequence
+  sequence:
+    - "database"
+    - "memory_service"
+    - "persona_service"
+    - "tactical_coordinator"
+    - "mcp_server"
+    - "fastapi_app"
+  
+  # Health checks before starting
+  pre_checks:
+    - "database_connection"
+    - "redis_connection"
+    - "disk_space"
+    - "memory_available"
+  
+  # Graceful shutdown
+  shutdown:
+    timeout: 30  # seconds
+    force_after: 60  # seconds
+
+# Feature Flags
+features:
+  vector_search: true
+  semantic_memory: true
+  parallel_execution: true
+  auto_optimization: true
+  learning_system: true
+  pattern_recognition: true
+  tactical_coordination: true
+  unified_database_pool: true
+
+# Performance Tuning
+performance:
+  # Query Optimization
+  query_cache_size: 1000
+  query_timeout_ms: 5000
+  
+  # Connection Management
+  connection_timeout: 5
+  keep_alive_timeout: 600
+  
+  # Memory Management
+  gc_threshold: 100  # MB
+  max_memory_mb: 1024

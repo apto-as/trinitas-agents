@@ -259,3 +259,5 @@ def get_app_info() -> Dict[str, Any]:
         "cors_enabled": bool(settings.cors_origins),
         "database_url": settings.database_url_async.split('@')[0] + "@[REDACTED]",  # Hide credentials
     }
+# Create default app instance for uvicorn
+app = create_app()

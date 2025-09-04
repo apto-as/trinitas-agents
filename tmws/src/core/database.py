@@ -6,6 +6,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
+import sqlalchemy as sa
 from sqlalchemy import event, pool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -25,19 +26,6 @@ _session_maker: Optional[async_sessionmaker] = None
 
 def _setup_connection_events(engine) -> None:
     """Setup connection pool events for monitoring and security."""
-    
-    @event.listens_for(engine.sync_engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        """Set SQLite security pragmas if using SQLite."""
-        if "sqlite" in str(dbapi_connection):
-            cursor = dbapi_connection.cursor()
-            # Security pragmas for SQLite
-            cursor.execute("PRAGMA journal_mode=WAL")
-            cursor.execute("PRAGMA synchronous=NORMAL") 
-            cursor.execute("PRAGMA cache_size=1000")
-            cursor.execute("PRAGMA temp_store=memory")
-            cursor.execute("PRAGMA mmap_size=268435456")  # 256MB
-            cursor.close()
     
     @event.listens_for(engine.sync_engine, "checkout")
     def receive_checkout(dbapi_connection, connection_record, connection_proxy):
@@ -61,11 +49,8 @@ def get_engine():
         engine_config = {
             "echo": settings.db_echo_sql and not settings.is_production,
             "echo_pool": False,  # Disable pool logging in production
-            "pool_size": settings.db_max_connections,
-            "max_overflow": settings.db_max_connections // 2,
             "pool_recycle": settings.db_pool_recycle,
             "pool_pre_ping": settings.db_pool_pre_ping,
-            "pool_reset_on_return": "commit",
         }
         
         # Add connection arguments for PostgreSQL
@@ -76,10 +61,8 @@ def get_engine():
                         "application_name": "tmws",
                         "jit": "off",  # Disable JIT for better connection times
                     },
-                    "command_timeout": 60,
-                    "statement_timeout": 30000,  # 30 seconds
                 },
-                "poolclass": pool.NullPool if settings.is_production else pool.QueuePool,
+                "poolclass": pool.NullPool,  # Async engine requires NullPool
             })
         
         _engine = create_async_engine(settings.database_url_async, **engine_config)
@@ -153,7 +136,7 @@ class DatabaseHealthCheck:
         """Check if database connection is healthy."""
         try:
             async with get_db_session() as session:
-                result = await session.execute("SELECT 1")
+                result = await session.execute(sa.text("SELECT 1"))
                 return result.scalar() == 1
         except Exception as e:
             logger.error(f"Database health check failed: {e}")

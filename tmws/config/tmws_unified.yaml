@@ -1,0 +1,268 @@
+# TMWS Unified Server Configuration
+# Strategic Architect Athena設計による統合設定
+
+server:
+  name: "TMWS Unified Server"
+  version: "1.0.0"
+  description: "Tactical Memory Warehouse System with integrated FastMCP + FastAPI"
+  
+  # 運用モード設定
+  environment: "production"  # development, testing, production
+  debug: false
+  hot_reload: false
+
+# プロトコル設定
+protocols:
+  # MCP (Model Context Protocol) 設定
+  mcp:
+    enabled: true
+    stdio_mode: true  # Claude Desktop integration用
+    network_mode: false  # 将来拡張用
+    
+    # MCP固有設定
+    tools:
+      memory_operations: true
+      persona_execution: true
+      batch_operations: true
+      
+    # パフォーマンス設定
+    max_concurrent_tools: 5
+    tool_timeout_seconds: 30
+    
+  # FastAPI (HTTP REST API) 設定  
+  fastapi:
+    enabled: true
+    host: "0.0.0.0"
+    port: 8000
+    
+    # CORS設定
+    cors:
+      enabled: true
+      allowed_origins: 
+        - "http://localhost:3000"
+        - "http://localhost:8080"
+      allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+      allowed_headers: ["*"]
+      
+    # セキュリティ設定
+    security:
+      api_key_required: false  # development用、productionでは true
+      rate_limiting:
+        enabled: true
+        max_requests: 100
+        window_seconds: 60
+        
+    # レスポンス設定
+    response:
+      gzip_compression: true
+      json_ensure_ascii: false
+      
+# データベース設定（共有リソース）
+database:
+  # プライマリDB (PostgreSQL + pgvector)
+  primary: "postgresql"
+  postgresql_url: "postgresql://tmws_user:tmws_password@localhost:5432/tmws"
+  postgresql_options:
+    pool_size: 10
+    max_overflow: 20
+    pool_pre_ping: true
+    pool_recycle: 3600
+    
+  # キャッシュDB (Redis)
+  redis:
+    enabled: true
+    url: "redis://localhost:6379/0"
+    max_connections: 10
+    retry_attempts: 3
+    
+  # 接続プール設定
+  connection_pool:
+    max_connections: 20
+    min_connections: 5
+    connection_timeout: 30
+    pool_timeout: 10
+
+# メモリシステム設定（共有リソース）
+memory:
+  # キャッシュ設定
+  cache_size_mb: 100
+  cache_ttl_seconds: 3600
+  
+  # 永続化設定
+  persistence: true
+  auto_save_interval: 300  # 5分
+  backup_retention_days: 30
+  
+  # 検索設定
+  semantic_search:
+    enabled: true
+    embedding_model: "text-embedding-3-small"  # OpenAI
+    similarity_threshold: 0.7
+    
+  # メモリ最適化
+  optimization:
+    auto_cleanup: true
+    cleanup_interval_hours: 24
+    max_memory_items: 10000
+
+# ペルソナシステム設定
+personas:
+  # 利用可能なペルソナ
+  available:
+    - athena    # 戦略アーキテクト
+    - artemis   # 技術完璧主義者  
+    - hestia    # セキュリティ守護者
+    - bellona   # 戦術調整役
+    - seshat    # 知識記録者
+    
+  # 実行設定
+  execution:
+    timeout_seconds: 60
+    max_concurrent: 3
+    fallback_enabled: true
+    
+  # ペルソナ固有設定
+  athena:
+    strategic_depth: "high"
+    consultation_mode: true
+    
+  artemis:
+    optimization_level: "aggressive"
+    perfectionist_mode: true
+    
+  hestia:
+    security_level: "paranoid"
+    audit_everything: true
+
+# ログ設定
+logging:
+  # 基本設定
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "structured"  # simple, structured, json
+  
+  # ファイル出力
+  file_logging:
+    enabled: true
+    directory: "./logs"
+    max_file_size_mb: 50
+    backup_count: 5
+    
+  # 個別ログファイル
+  separate_logs:
+    mcp: "./logs/mcp.log"
+    api: "./logs/api.log" 
+    memory: "./logs/memory.log"
+    persona: "./logs/persona.log"
+    error: "./logs/error.log"
+    
+  # ログローテーション
+  rotation:
+    enabled: true
+    frequency: "daily"  # daily, weekly, monthly
+    keep_days: 30
+
+# パフォーマンス設定
+performance:
+  # 非同期処理
+  async_workers: 4
+  async_queue_size: 100
+  
+  # タイムアウト設定
+  timeouts:
+    database_query: 10
+    api_request: 30
+    tool_execution: 60
+    
+  # メモリ使用量制限
+  memory_limits:
+    max_heap_mb: 512
+    max_cache_mb: 100
+    gc_threshold: 0.8
+
+# 監視・メトリクス設定
+monitoring:
+  # ヘルスチェック
+  health_checks:
+    enabled: true
+    endpoint: "/health"
+    detailed_endpoint: "/health/detailed"
+    
+  # メトリクス収集
+  metrics:
+    enabled: true
+    endpoint: "/metrics"
+    include_system_metrics: true
+    
+  # アラート設定
+  alerts:
+    enabled: false  # development用
+    error_threshold: 10
+    memory_threshold_mb: 400
+
+# セキュリティ設定
+security:
+  # 暗号化
+  encryption:
+    secret_key: "${TMWS_SECRET_KEY}"  # 環境変数から取得
+    algorithm: "HS256"
+    token_expire_minutes: 60
+    
+  # API認証
+  api_authentication:
+    enabled: false  # development用
+    type: "bearer_token"  # api_key, bearer_token, oauth2
+    
+  # 入力検証
+  input_validation:
+    max_request_size_mb: 10
+    sanitize_inputs: true
+    validate_schemas: true
+
+# 外部サービス統合
+integrations:
+  # OpenAI (埋め込み生成用)
+  openai:
+    enabled: false
+    api_key: "${OPENAI_API_KEY}"
+    model: "text-embedding-3-small"
+    
+  # その他のAPI
+  external_apis:
+    rate_limit: 100
+    timeout: 30
+    retry_attempts: 3
+
+# 開発者設定
+development:
+  # デバッグ設定
+  debug_mode: false
+  profiling: false
+  
+  # テスト設定
+  test_database: "postgresql://tmws_user:tmws_password@localhost:5432/tmws_test"
+  mock_external_apis: true
+  
+  # ホットリロード
+  hot_reload:
+    enabled: false
+    watch_directories: ["./src", "./config"]
+    exclude_patterns: ["*.pyc", "__pycache__"]
+
+# 本番運用設定
+production:
+  # パフォーマンス最適化
+  optimize_for_production: true
+  preload_data: true
+  warm_cache: true
+  
+  # 冗長性・可用性
+  high_availability:
+    enabled: false
+    backup_nodes: []
+    
+  # バックアップ
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"  # 毎日午前2時
+    retention_days: 90
+    compression: true
